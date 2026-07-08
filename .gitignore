@@ -1,7 +1,3 @@
-# Configuración local con la URL real de la web app y el token.
-# Cada equipo/paquete tiene la suya; nunca se versiona.
-extension/config.js
-
 # Empaquetados para repartir
 dist/
 *.zip

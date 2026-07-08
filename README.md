@@ -157,5 +157,7 @@ sensible como el número SIG.
 
 - El único dato que sale es el **número SIG** (referencia sin datos sensibles);
   consultado con la empresa, se puede subir a Google Sheets.
-- El repositorio es privado y **no** contiene la URL real, la contraseña ni
-  rutas internas (`config.js` está en `.gitignore`).
+- El repositorio es privado. `config.js` lleva la URL de la web app (dato no
+  sensible) para facilitar el reparto. **No** pongas ahí datos sensibles ni
+  rutas internas; si algún día usas contraseña, valora si prefieres no
+  versionarla.
