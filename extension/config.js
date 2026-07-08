@@ -13,7 +13,7 @@ const MK_USUARIO = "";
 // Contraseña. Debe ser EXACTAMENTE la misma que la constante TOKEN de Apps Script.
 //   - Si en Apps Script dejaste  const TOKEN = '';  (sin contraseña) -> deja esto como "".
 //   - Si pusiste una contraseña  ej. const TOKEN = 'kimak-2026';     -> pon aquí "kimak-2026".
-const MK_TOKEN = "";
+const MK_TOKEN = "DIBUJACION";
 
 // Cada cuántos milisegundos se pregunta por marcas de otros (30000 = 30 s).
 const MK_INTERVALO_MS = 30000;
