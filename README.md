@@ -63,8 +63,10 @@ docs/
    [Puntos a decidir](#puntos-a-decidir).
 2. En esa hoja: menú **Extensiones → Apps Script**.
 3. Borra el contenido de `Código.gs` y pega el de `apps-script/Codigo.gs`.
-4. (Opcional) Si quieres proteger la escritura, pon un valor en la constante
-   `TOKEN` de arriba del archivo. Tendrás que poner el mismo en `config.js`.
+4. **Recomendado — pon una contraseña**: en la constante `TOKEN` (arriba del
+   archivo) escribe una clave que compartirás solo con el equipo. Así la API
+   solo responde a quien la sepa. Tendrás que poner exactamente la misma en
+   `config.js` (`MK_TOKEN`). Ver [Contraseña vs. acceso](#contraseña-vs-acceso).
 5. **Guarda** (💾).
 6. **Implementar → Nueva implementación**.
    - Tipo: **Aplicación web**.
@@ -74,13 +76,13 @@ docs/
    - **Implementar**. La primera vez te pedirá autorizar permisos: acéptalos.
 7. Copia la **URL de la aplicación web** (termina en `/exec`).
 
-**Probar que responde**: pega esa URL en el navegador. Debe devolver algo como:
+**Probar que responde**: pega esa URL en el navegador.
+- Si **no** pusiste `TOKEN`: verás `{ "ok": true, "marcadas": [], "total": 0 }`.
+- Si **sí** pusiste `TOKEN`: verás `{ "ok": false, "error": "token" }` — eso es
+  buena señal (la API vive y la contraseña protege). Para probarla con clave,
+  añade `?token=TU_CLAVE` al final de la URL.
 
-```json
-{ "ok": true, "marcadas": [], "total": 0 }
-```
-
-Si ves eso, el paso 1 está hecho.
+Si ves cualquiera de las dos, el paso 1 está hecho.
 
 > Cada vez que edites `Codigo.gs`, usa **Implementar → Gestionar
 > implementaciones → (lápiz) → Versión: Nueva** para publicar los cambios sin
@@ -130,11 +132,30 @@ Google.
   un marcador nativo. Si lo hace, esto es un puente; si va para largo, es la
   solución buena. Tenerlo en la balanza antes de invertir mucho.
 
+## Contraseña vs. acceso
+
+Son **dos capas distintas**, y la contraseña no sustituye al ajuste de Google:
+
+| Capa | Qué controla | Dónde se pone |
+|---|---|---|
+| Acceso de Google ("Cualquier usuario") | Que la petición HTTPS *llegue* al script **sin pedir login de Google** | Al desplegar la web app |
+| Contraseña (`TOKEN`) | Que el script solo *responda* a quien sabe la clave | En `Codigo.gs` + `config.js` |
+
+Hay que dejar el acceso en **"Cualquier usuario"** sí o sí: la extensión llama
+de forma anónima y, si Google exigiera login, no podría pasar (obligaría a un
+flujo OAuth incómodo). Pero eso **no expone tus datos**: solo significa que la
+puerta no pide carné de Google. Quien decide quién entra es la **contraseña**:
+
+- Sin la clave → el script responde `{"ok":false,"error":"token"}`.
+- Con la clave (va dentro de `config.js`, que solo tiene el equipo) → funciona.
+
+Resultado: **quien tiene la contraseña tiene acceso; el resto, nada.** Es una
+barrera ligera (la clave viaja en la petición), suficiente para un dato no
+sensible como el número SIG.
+
 ## Seguridad y privacidad
 
 - El único dato que sale es el **número SIG** (referencia sin datos sensibles);
   consultado con la empresa, se puede subir a Google Sheets.
-- El repositorio es privado y **no** contiene la URL real ni rutas internas
-  (`config.js` está en `.gitignore`).
-- Con acceso "Cualquier usuario", la URL es pública para quien la tenga. El
-  `TOKEN` opcional añade una barrera ligera para la escritura.
+- El repositorio es privado y **no** contiene la URL real, la contraseña ni
+  rutas internas (`config.js` está en `.gitignore`).
