@@ -1,0 +1,76 @@
+/* Marca naranja sobre el recuadro del numero SIG cuando la tarea es de otro departamento */
+.mk-otro-depto {
+  outline: 3px solid #ff7a00 !important;
+  outline-offset: -1px;
+  border-radius: 4px;
+}
+
+/* Atenua ligeramente toda la fila marcada para reconocerla de un vistazo */
+tr.mk-fila-marcada {
+  opacity: 0.55;
+}
+
+/* Cuadradito pequeño a la izquierda del checkbox blanco */
+.mk-btn {
+  display: inline-block;
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+  margin: 0 5px 0 0;
+  border: 1px solid #ff7a00;
+  border-radius: 3px;
+  background: #fff3e6;
+  vertical-align: middle;
+  box-sizing: border-box;
+  font-size: 0;          /* sin texto visible */
+  line-height: 0;
+  flex: 0 0 auto;
+}
+
+/* El contenedor apilado del checkbox lo mostramos en linea junto al naranja */
+.mk-btn + .custom-controls-stacked {
+  display: inline-block !important;
+  vertical-align: middle;
+  margin-top: 0 !important;
+}
+.mk-btn:hover { background: #ffe4c4; }
+
+/* Cuando esta activo: relleno naranja con una marca de check */
+.mk-btn.mk-activo {
+  background: #ff7a00;
+  position: relative;
+}
+.mk-btn.mk-activo::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 3px;
+  height: 7px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* Aviso discreto cuando algo falla al guardar en el servidor */
+#mk-aviso {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 2147483647;
+  max-width: 320px;
+  padding: 10px 14px;
+  background: #b3261e;
+  color: #fff;
+  font: 13px/1.4 system-ui, sans-serif;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+#mk-aviso.mk-aviso-visible {
+  opacity: 1;
+  transform: translateY(0);
+}

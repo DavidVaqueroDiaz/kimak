@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Marcador KIMAK - Otro departamento",
+  "version": "2.0",
+  "description": "Marca tareas que debe hacer otro departamento. Las marcas se comparten con todo el equipo.",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://script.google.com/*",
+    "https://script.googleusercontent.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://sig-design.kimak.com/*"],
+      "js": ["config.js", "content.js"],
+      "css": ["estilos.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}
