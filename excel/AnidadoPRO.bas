@@ -22,11 +22,13 @@ Attribute VB_Name = "Mod_AnidadoPRO"
 '     caben en ningun tablero se avisan en rojo.
 '
 ' Reglas de veta:
-'   - Dir. Veta = "Largo": la pieza no gira; su Largo se alinea con el
-'     largo del tablero (donde corre la veta).
+'   - Dir. Veta = "Largo", "Corto" o cualquier otro texto: la pieza no
+'     gira; la medida de la columna Largo (donde va la veta) se alinea
+'     con el largo del tablero. El SIG escribe "Corto" cuando la veta
+'     va en el largo pero el largo es la medida pequena de la pieza.
 '   - Dir. Veta = "Ancho": la pieza no gira; se coloca girada 90 grados
 '     para que su Ancho quede alineado con el largo del tablero.
-'   - Sin veta: gira solo si Permite giro = 1.
+'   - Dir. Veta vacia o "0": sin veta; gira solo si Permite giro = 1.
 '   - Si una fila trae veta y Permite giro = 1, la veta manda: no gira.
 ' =====================================================================
 Option Explicit
@@ -472,13 +474,16 @@ Private Sub CalcularGrupo(ws As Worksheet, dataLast As Long, mats As Object, _
                         q = CLng(ToNum(ws.Cells(r, C_QTY).Value))
                         If q <= 0 Then q = 1
 
+                        ' Dir. Veta: vacio o "0" = sin veta. "Ancho" = veta en la
+                        ' columna Ancho. Cualquier otro texto ("Largo", "Corto"...)
+                        ' significa veta en la medida de la columna Largo.
                         vetaTxt = LCase$(Trim$(CStr(ws.Cells(r, C_VETA).Value)))
-                        If InStr(vetaTxt, "larg") > 0 Then
-                            veta = 1
+                        If vetaTxt = "" Or vetaTxt = "0" Then
+                            veta = 0
                         ElseIf InStr(vetaTxt, "anch") > 0 Then
                             veta = 2
                         Else
-                            veta = 0
+                            veta = 1
                         End If
                         ' La veta manda: solo gira si no hay veta y K = 1
                         giro = (veta = 0) And (ToNum(ws.Cells(r, C_GIRO).Value) = 1)

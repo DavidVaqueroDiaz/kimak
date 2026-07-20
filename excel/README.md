@@ -72,9 +72,12 @@ Debajo de los datos aparecen dos tablas:
 | Separación entre piezas y franjas | 17 mm (12 libre + 5 kerf) |
 
 Reglas de veta (columna *Dir. Veta* del CSV):
-- `Largo` → la pieza no gira; su largo se alinea con el largo del tablero.
+- `Largo`, `Corto` o cualquier otro texto → la pieza no gira; la medida de la
+  columna Largo (que es donde va la veta) se alinea con el largo del tablero.
+  El SIG escribe `Corto` cuando la veta va en el largo pero el largo es la
+  medida pequeña de la pieza.
 - `Ancho` → la pieza no gira; se coloca girada 90° (caso raro, contemplado).
-- Vacío → gira solo si *Permite giro* = 1.
+- Vacío o `0` → sin veta; gira solo si *Permite giro* = 1.
 - Si una fila trae veta y *Permite giro* = 1 a la vez, **la veta manda**: no gira.
 
 ## Futuro previsto
