@@ -1,10 +1,10 @@
-# Calculadora de Tableros — Departamento de Compras (Grupo KIMAK)
+# AnidadoPRO — Calculadora de Tableros para Compras (Grupo KIMAK)
 
 Macro VBA para Excel que calcula cuántos tableros hay que **pedir** por material
 a partir del CSV de despiece exportado del SIG, usando nesting por franjas
 (guillotina) que respeta la dirección de la veta de cada pieza.
 
-Archivo: [`CalcularTableros.bas`](CalcularTableros.bas)
+Archivo: [`AnidadoPRO.bas`](AnidadoPRO.bas)
 
 ---
 
@@ -16,8 +16,8 @@ Archivo: [`CalcularTableros.bas`](CalcularTableros.bas)
      macro → guardar en *Libro de macros personal*) y detenerla. Eso crea el
      libro personal.
 3. Clic derecho sobre PERSONAL.XLSB → **Importar archivo…** → seleccionar
-   `CalcularTableros.bas`.
-4. Cerrar el editor. La macro `CalcularTableros` queda disponible en cualquier
+   `AnidadoPRO.bas`.
+4. Cerrar el editor. La macro `AnidadoPRO` queda disponible en cualquier
    libro que se abra (`Alt + F8`).
 
 > Consejo: añadirla a la barra de acceso rápido para lanzarla con un clic
@@ -27,10 +27,10 @@ Archivo: [`CalcularTableros.bas`](CalcularTableros.bas)
 
 ### Modo 1 — un solo CSV
 1. Abrir el CSV del SIG en Excel.
-2. `Alt + F8` → `CalcularTableros` → Ejecutar.
+2. `Alt + F8` → `AnidadoPRO` → Ejecutar.
 
 ### Modo 2 — pedido con varios CSV
-1. Ejecutar `CalcularTableros` **sin datos delante** (libro vacío o Excel
+1. Ejecutar `AnidadoPRO` **sin datos delante** (libro vacío o Excel
    recién abierto).
 2. La macro pregunta si quieres importar: se abre el explorador de Windows.
 3. Seleccionar todos los CSV del pedido (`Ctrl + clic`) y aceptar.

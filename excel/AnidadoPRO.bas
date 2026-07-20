@@ -1,13 +1,13 @@
-Attribute VB_Name = "Mod_CalcularTableros"
+Attribute VB_Name = "Mod_AnidadoPRO"
 ' =====================================================================
-' Macro:  CalcularTableros  -  Grupo KIMAK (Departamento de Compras)
+' Macro:  AnidadoPRO  -  Grupo KIMAK (Departamento de Compras)
 '
 ' Calcula cuantos tableros hay que pedir por material a partir del CSV
 ' exportado del SIG, con nesting por franjas (guillotina) que respeta
 ' la direccion de la veta de cada pieza.
 '
 ' Dos modos de uso con la misma macro:
-'   1) Abrir un CSV del SIG y ejecutar CalcularTableros.
+'   1) Abrir un CSV del SIG y ejecutar AnidadoPRO.
 '   2) Ejecutarla sin datos delante (libro vacio): abre el selector de
 '      archivos de Windows, permite elegir varios CSV a la vez, los
 '      combina en un libro nuevo y calcula el pedido completo.
@@ -56,7 +56,7 @@ Private Const BTN_NAME As String = "btnRecalcularTableros"
 ' =====================================================================
 ' Macro principal
 ' =====================================================================
-Public Sub CalcularTableros()
+Public Sub AnidadoPRO()
     Dim ws As Worksheet
     Set ws = ActiveSheet
 
@@ -68,13 +68,13 @@ Public Sub CalcularTableros()
         If MsgBox("La hoja activa no tiene datos de piezas." & vbNewLine & vbNewLine & _
                   "Quieres seleccionar uno o varios CSV del SIG para importarlos " & _
                   "juntos y calcular los tableros del pedido completo?", _
-                  vbYesNo + vbQuestion, "Calculadora de Tableros") <> vbYes Then Exit Sub
+                  vbYesNo + vbQuestion, "AnidadoPRO") <> vbYes Then Exit Sub
         Set ws = ImportarCSVs()
         If ws Is Nothing Then Exit Sub
         dataLast = UltimaFilaDatos(ws)
         If dataLast < 2 Then
             MsgBox "Los archivos seleccionados no contienen piezas.", _
-                   vbExclamation, "Calculadora de Tableros"
+                   vbExclamation, "AnidadoPRO"
             Exit Sub
         End If
     End If
@@ -157,7 +157,7 @@ Public Sub CalcularTableros()
     If medidasMalas <> "" Then
         MsgBox "Estas medidas de tablero no eran validas y se han " & _
                "restablecido a " & DEF_TAB_L & " x " & DEF_TAB_A & ":" & _
-               vbNewLine & medidasMalas, vbExclamation, "Calculadora de Tableros"
+               vbNewLine & medidasMalas, vbExclamation, "AnidadoPRO"
     End If
 
     ' Confirmar uniones entre espesores distintos (casi siempre error de dedo)
@@ -205,7 +205,7 @@ Public Sub CalcularTableros()
                "(un material apunta a otro que apunta de vuelta al primero)." & _
                vbNewLine & "Se han ignorado las uniones de:" & vbNewLine & ciclos & _
                vbNewLine & vbNewLine & "Revisa los desplegables y pulsa RECALCULAR.", _
-               vbExclamation, "Calculadora de Tableros"
+               vbExclamation, "AnidadoPRO"
     End If
 
     ' -----------------------------------------------------------------
@@ -314,7 +314,7 @@ Public Sub CalcularTableros()
     btn.Name = BTN_NAME
     btn.Caption = "RECALCULAR"
     btn.Font.Bold = True
-    btn.OnAction = "'" & ThisWorkbook.Name & "'!CalcularTableros"
+    btn.OnAction = "'" & ThisWorkbook.Name & "'!AnidadoPRO"
 
     ' ---- Tabla TABLEROS A PEDIR ----
     Dim rRes As Long
@@ -402,7 +402,7 @@ Public Sub CalcularTableros()
 
 Fallo:
     Application.ScreenUpdating = True
-    MsgBox "Error inesperado: " & Err.Description, vbCritical, "Calculadora de Tableros"
+    MsgBox "Error inesperado: " & Err.Description, vbCritical, "AnidadoPRO"
 End Sub
 
 
