@@ -62,6 +62,8 @@ Private Const TIT_MEDIDAS As String = "MEDIDAS DE TABLERO"
 Private Const TIT_RESULT As String = "TABLEROS A PEDIR"
 Private Const COL_OUT As Long = 3         ' Columna C: primera columna de las tablas
 Private Const COL_LISTA As Long = 21      ' Columna U (oculta): lista para desplegables
+Private Const COL_SUG As Long = 30        ' Columna AD en adelante (ocultas): listas
+                                          ' por fila con los candidatos a duplicado primero
 Private Const BTN_NAME As String = "btnRecalcularTableros"
 
 
@@ -225,6 +227,8 @@ Public Sub AnidadoPRO()
     ' -----------------------------------------------------------------
     Dim sospechoso() As Boolean
     ReDim sospechoso(0 To matCount - 1)
+    Dim parejas() As String     ' indices de los candidatos de cada material, separados por ;
+    ReDim parejas(0 To matCount - 1)
     Dim ni As String, nj As String
     For i = 0 To matCount - 2
         For j = i + 1 To matCount - 1
@@ -237,6 +241,8 @@ Public Sub AnidadoPRO()
                     If Levenshtein(ni, nj) <= 3 Then
                         sospechoso(i) = True
                         sospechoso(j) = True
+                        parejas(i) = parejas(i) & j & ";"
+                        parejas(j) = parejas(j) & i & ";"
                     End If
                 End If
             End If
@@ -304,20 +310,61 @@ Public Sub AnidadoPRO()
         ws.Cells(fila, COL_LISTA).Value = matNames(i)
     Next i
 
-    ' Desplegable MISMO QUE alimentado por la lista oculta de la columna U
-    Dim rngMismo As Range
-    Set rngMismo = ws.Range(ws.Cells(r0 + 2, COL_OUT + 3), _
-                            ws.Cells(r0 + 1 + matCount, COL_OUT + 3))
-    With rngMismo.Validation
-        .Delete
-        .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, _
-             Formula1:="=" & ws.Cells(r0 + 2, COL_LISTA).Address & ":" & _
-                             ws.Cells(r0 + 1 + matCount, COL_LISTA).Address
-        .IgnoreBlank = True
-        .InCellDropdown = True
-        .ErrorMessage = "Elige un material de la lista o deja la celda vacia."
-    End With
+    ' Desplegables MISMO QUE. Las filas normales usan la lista comun de la
+    ' columna U; en las filas amarillas la lista es propia (columnas ocultas
+    ' AD en adelante) con los candidatos a duplicado colocados al principio,
+    ' para encontrarlos sin recorrer todo el desplegable.
+    Dim formulaLista As String
+    Dim listaComun As String
+    listaComun = "=" & ws.Cells(r0 + 2, COL_LISTA).Address & ":" & _
+                       ws.Cells(r0 + 1 + matCount, COL_LISTA).Address
+
+    Dim idxPar() As String
+    Dim nSug As Long, jj As Long, yaEsta As Boolean, kk As Long
+
+    For i = 0 To matCount - 1
+        fila = r0 + 2 + i
+        If parejas(i) <> "" Then
+            ' candidatos primero...
+            nSug = 0
+            idxPar = Split(parejas(i), ";")
+            For jj = 0 To UBound(idxPar) - 1   ' el ultimo elemento es vacio por el ; final
+                ws.Cells(fila, COL_SUG + nSug).Value = matNames(CLng(idxPar(jj)))
+                nSug = nSug + 1
+            Next jj
+            ' ...y despues el resto de materiales (sin el propio ni los ya puestos)
+            For jj = 0 To matCount - 1
+                If jj <> i Then
+                    yaEsta = False
+                    For kk = 0 To UBound(idxPar) - 1
+                        If CLng(idxPar(kk)) = jj Then yaEsta = True: Exit For
+                    Next kk
+                    If Not yaEsta Then
+                        ws.Cells(fila, COL_SUG + nSug).Value = matNames(jj)
+                        nSug = nSug + 1
+                    End If
+                End If
+            Next jj
+            formulaLista = "=" & ws.Range(ws.Cells(fila, COL_SUG), _
+                                          ws.Cells(fila, COL_SUG + nSug - 1)).Address
+        Else
+            formulaLista = listaComun
+        End If
+
+        With ws.Cells(fila, COL_OUT + 3).Validation
+            .Delete
+            .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, _
+                 Formula1:=formulaLista
+            .IgnoreBlank = True
+            .InCellDropdown = True
+            .ErrorMessage = "Elige un material de la lista o deja la celda vacia."
+        End With
+    Next i
+
     ws.Columns(COL_LISTA).Hidden = True
+    If matCount > 1 Then
+        ws.Range(ws.Columns(COL_SUG), ws.Columns(COL_SUG + matCount - 1)).Hidden = True
+    End If
 
     Call Bordear(ws.Range(ws.Cells(r0 + 1, COL_OUT), ws.Cells(r0 + 1 + matCount, COL_OUT + 3)))
 

@@ -46,7 +46,10 @@ Debajo de los datos aparecen dos tablas:
   escritura en el diseño), elegir en el desplegable el material "bueno"; al
   recalcular, sus piezas se anidan juntas. Los nombres casi idénticos con el
   mismo espesor se marcan en **amarillo** como aviso de posible duplicado
-  (la macro nunca une nada sola: decide siempre el usuario).
+  (la macro nunca une nada sola: decide siempre el usuario). En las filas
+  amarillas, el desplegable muestra **primero los candidatos** detectados y
+  después el resto de materiales (Excel no permite colorear los elementos de
+  un desplegable, así que se ordenan para encontrarlos al instante).
 - Botón **RECALCULAR**: regenera el resultado al instante con las medidas y
   uniones introducidas, sin volver a preguntar nada.
 
