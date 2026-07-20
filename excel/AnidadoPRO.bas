@@ -18,8 +18,17 @@ Attribute VB_Name = "Mod_AnidadoPRO"
 '     materiales duplicados por errores de escritura. Los posibles
 '     duplicados se marcan en amarillo. Boton RECALCULAR incluido.
 '   - TABLEROS A PEDIR: material, medida de tablero, calculo exacto y
-'     unidades a pedir (redondeadas hacia arriba). Las piezas que no
-'     caben en ningun tablero se avisan en rojo.
+'     unidades a pedir (redondeadas hacia arriba). Ambas tablas llevan
+'     filtros para ordenarlas por cualquier columna.
+'
+' Piezas grandes:
+'   - Una pieza que no cabe en el area util (con margenes de orilla)
+'     pero si en el tablero bruto (p.ej. 3050x1220, 3050x200, 100x1220)
+'     se anida aparte usando el tablero completo, cuenta en los tableros
+'     a pedir y se avisa en NARANJA con su Cod. Pieza: va sin margen de
+'     orilla y hay que revisarla antes de cortar.
+'   - Una pieza que no cabe ni en el tablero bruto se avisa en ROJO con
+'     su Cod. Pieza y no se cuenta.
 '
 ' Reglas de veta:
 '   - Dir. Veta = "Largo", "Corto" o cualquier otro texto: la pieza no
@@ -241,12 +250,14 @@ Public Sub AnidadoPRO()
     ReDim exactoG(0 To matCount - 1)
     ReDim pedirG(0 To matCount - 1)
     Dim imposibles As New Collection
+    Dim avisos As New Collection
 
     Dim t As Long
     For t = 0 To matCount - 1
         If destino(t) = t Then
             Call CalcularGrupo(ws, dataLast, mats, destino, t, matNames(t), _
-                               tabL(t), tabA(t), exactoG(t), pedirG(t), imposibles)
+                               tabL(t), tabA(t), exactoG(t), pedirG(t), _
+                               imposibles, avisos)
         End If
     Next t
 
@@ -310,13 +321,31 @@ Public Sub AnidadoPRO()
 
     Call Bordear(ws.Range(ws.Cells(r0 + 1, COL_OUT), ws.Cells(r0 + 1 + matCount, COL_OUT + 3)))
 
-    ' Boton RECALCULAR junto al titulo
-    Dim btn As Button
-    Set btn = ws.Buttons.Add(ws.Cells(r0, COL_OUT + 4).Left + 5, _
-                             ws.Cells(r0, COL_OUT + 4).Top - 2, 120, 24)
+    ' Convertir en tabla de Excel para poder ordenar/filtrar por cualquier columna
+    On Error Resume Next
+    Dim loMed As ListObject
+    Set loMed = ws.ListObjects.Add(xlSrcRange, _
+        ws.Range(ws.Cells(r0 + 1, COL_OUT), ws.Cells(r0 + 1 + matCount, COL_OUT + 3)), , xlYes)
+    loMed.Name = "TablaMedidasTablero"
+    loMed.TableStyle = ""
+    On Error GoTo Fallo
+
+    ' Boton RECALCULAR junto al titulo (forma amarilla con macro asignada)
+    Dim btn As Shape
+    Set btn = ws.Shapes.AddShape(msoShapeRoundedRectangle, _
+                                 ws.Cells(r0, COL_OUT + 4).Left + 5, _
+                                 ws.Cells(r0, COL_OUT + 4).Top - 2, 130, 26)
     btn.Name = BTN_NAME
-    btn.Caption = "RECALCULAR"
-    btn.Font.Bold = True
+    btn.Fill.ForeColor.RGB = RGB(255, 204, 0)
+    btn.Line.ForeColor.RGB = RGB(175, 140, 0)
+    With btn.TextFrame2
+        .TextRange.Text = "RECALCULAR"
+        .TextRange.Font.Bold = msoTrue
+        .TextRange.Font.Size = 11
+        .TextRange.Font.Fill.ForeColor.RGB = RGB(0, 0, 0)
+        .TextRange.ParagraphFormat.Alignment = msoAlignCenter
+        .VerticalAnchor = msoAnchorMiddle
+    End With
     btn.OnAction = "'" & ThisWorkbook.Name & "'!AnidadoPRO"
 
     ' ---- Tabla TABLEROS A PEDIR ----
@@ -378,10 +407,21 @@ Public Sub AnidadoPRO()
 
     Call Bordear(ws.Range(ws.Cells(rRes + 1, COL_OUT), ws.Cells(fila, COL_OUT + 3)))
 
-    ' ---- Piezas que no caben en ningun tablero: aviso en rojo ----
+    ' Convertir en tabla de Excel (sin la fila de total, para que no se ordene)
+    If nGrupos > 0 Then
+        On Error Resume Next
+        Dim loRes As ListObject
+        Set loRes = ws.ListObjects.Add(xlSrcRange, _
+            ws.Range(ws.Cells(rRes + 1, COL_OUT), ws.Cells(fila - 1, COL_OUT + 3)), , xlYes)
+        loRes.Name = "TablaTablerosAPedir"
+        loRes.TableStyle = ""
+        On Error GoTo Fallo
+    End If
+
+    ' ---- Avisos: rojo = no cabe; naranja = usa el tablero sin margen ----
+    Dim k As Long
     If imposibles.Count > 0 Then
         fila = fila + 2
-        Dim k As Long
         For k = 1 To imposibles.Count
             With ws.Range(ws.Cells(fila, COL_OUT), ws.Cells(fila, COL_OUT + 3))
                 .Interior.Color = RGB(192, 0, 0)
@@ -389,6 +429,18 @@ Public Sub AnidadoPRO()
                 .Font.Bold = True
             End With
             ws.Cells(fila, COL_OUT).Value = imposibles(k)
+            fila = fila + 1
+        Next k
+    End If
+    If avisos.Count > 0 Then
+        If imposibles.Count = 0 Then fila = fila + 2
+        For k = 1 To avisos.Count
+            With ws.Range(ws.Cells(fila, COL_OUT), ws.Cells(fila, COL_OUT + 3))
+                .Interior.Color = RGB(237, 125, 49)
+                .Font.Color = RGB(255, 255, 255)
+                .Font.Bold = True
+            End With
+            ws.Cells(fila, COL_OUT).Value = avisos(k)
             fila = fila + 1
         Next k
     End If
@@ -417,7 +469,7 @@ Private Sub CalcularGrupo(ws As Worksheet, dataLast As Long, mats As Object, _
                           destino() As Long, t As Long, nombreGrupo As String, _
                           tabLv As Double, tabAv As Double, _
                           ByRef exacto As Double, ByRef pedir As Long, _
-                          ByRef imposibles As Collection)
+                          ByRef imposibles As Collection, ByRef avisos As Collection)
 
     Dim utilL As Double, utilA As Double
     utilL = tabLv - 2 * MARGEN
@@ -506,7 +558,7 @@ Private Sub CalcularGrupo(ws As Worksheet, dataLast As Long, mats As Object, _
     Next r
 
     Call AnidarPiezas(pL, pA, pVeta, pGiro, pCod, nP, utilL, utilA, _
-                      nombreGrupo, tabLv, tabAv, exacto, pedir, imposibles)
+                      nombreGrupo, tabLv, tabAv, exacto, pedir, imposibles, avisos)
 End Sub
 
 
@@ -518,7 +570,7 @@ Private Sub AnidarPiezas(pL() As Double, pA() As Double, pVeta() As Long, _
                          utilL As Double, utilA As Double, _
                          nombreGrupo As String, tabLv As Double, tabAv As Double, _
                          ByRef exacto As Double, ByRef pedir As Long, _
-                         ByRef imposibles As Collection)
+                         ByRef imposibles As Collection, ByRef avisos As Collection)
 
     Dim p As Long, o As Long
     Dim tmp As Double
@@ -557,35 +609,42 @@ Private Sub AnidarPiezas(pL() As Double, pA() As Double, pVeta() As Long, _
         End Select
     Next p
 
-    ' Piezas imposibles: no caben en un tablero vacio en ninguna orientacion.
-    ' Se agrupan por Cod. Pieza y dimensiones para dar un solo aviso con la
-    ' cantidad de unidades afectadas.
-    Dim pSkip() As Boolean
-    ReDim pSkip(0 To nP - 1)
-    Dim impDict As Object
+    ' Clasificar cada pieza:
+    '   0 = normal (cabe en el area util, con margenes de orilla)
+    '   1 = sin margen (solo cabe usando el tablero completo, hasta el bruto)
+    '   2 = imposible (no cabe ni en el tablero bruto)
+    ' Los avisos se agrupan por Cod. Pieza y dimensiones con su cantidad.
+    Dim pClase() As Long
+    ReDim pClase(0 To nP - 1)
+    Dim impDict As Object, smDict As Object
     Set impDict = CreateObject("Scripting.Dictionary")
+    Set smDict = CreateObject("Scripting.Dictionary")
     Dim clave As Variant
 
     For p = 0 To nP - 1
-        pSkip(p) = True
+        pClase(p) = 2
         For o = 0 To nO(p) - 1
             If oW(p, o) <= utilA And oH(p, o) <= utilL Then
-                pSkip(p) = False
+                pClase(p) = 0
                 Exit For
+            ElseIf oW(p, o) <= tabAv And oH(p, o) <= tabLv Then
+                pClase(p) = 1
             End If
         Next o
-        If pSkip(p) Then
+        If pClase(p) > 0 Then
             clave = pCod(p) & "|" & FmtMM(pL(p)) & " x " & FmtMM(pA(p))
-            If impDict.Exists(clave) Then
-                impDict(clave) = impDict(clave) + 1
+            If pClase(p) = 2 Then
+                If impDict.Exists(clave) Then impDict(clave) = impDict(clave) + 1 _
+                                         Else impDict.Add clave, 1
             Else
-                impDict.Add clave, 1
+                If smDict.Exists(clave) Then smDict(clave) = smDict(clave) + 1 _
+                                        Else smDict.Add clave, 1
             End If
         End If
     Next p
 
+    Dim partes() As String
     For Each clave In impDict.Keys
-        Dim partes() As String
         partes = Split(CStr(clave), "|")
         imposibles.Add "NO CABE: " & impDict(clave) & " ud" & _
                        IIf(impDict(clave) > 1, "s", "") & " de " & partes(1) & _
@@ -594,12 +653,22 @@ Private Sub AnidarPiezas(pL() As Double, pA() As Double, pVeta() As Long, _
                        " x " & Format$(tabAv, "0") & ")"
     Next clave
 
+    For Each clave In smDict.Keys
+        partes = Split(CStr(clave), "|")
+        avisos.Add "SIN MARGEN: " & smDict(clave) & " ud" & _
+                   IIf(smDict(clave) > 1, "s", "") & " de " & partes(1) & _
+                   " mm - Cod. Pieza " & partes(0) & _
+                   "  (" & nombreGrupo & "): usa el tablero completo de " & _
+                   Format$(tabLv, "0") & " x " & Format$(tabAv, "0") & _
+                   " sin margen de orilla - revisar antes de cortar"
+    Next clave
+
     ' Ordenar de mayor a menor por alto de colocacion; en empate, por ancho
     Dim ii As Long, jj As Long
     Dim doSwap As Boolean
     Dim ki As Double, kj As Double
     Dim tL As Double, tA As Double, tV As Long
-    Dim tG As Boolean, tS As Boolean, tN As Long
+    Dim tG As Boolean, tS As Long, tN As Long
     Dim tW0 As Double, tW1 As Double, tH0 As Double, tH1 As Double
 
     For ii = 0 To nP - 2
@@ -616,7 +685,7 @@ Private Sub AnidarPiezas(pL() As Double, pA() As Double, pVeta() As Long, _
                 tA = pA(ii): pA(ii) = pA(jj): pA(jj) = tA
                 tV = pVeta(ii): pVeta(ii) = pVeta(jj): pVeta(jj) = tV
                 tG = pGiro(ii): pGiro(ii) = pGiro(jj): pGiro(jj) = tG
-                tS = pSkip(ii): pSkip(ii) = pSkip(jj): pSkip(jj) = tS
+                tS = pClase(ii): pClase(ii) = pClase(jj): pClase(jj) = tS
                 tN = nO(ii): nO(ii) = nO(jj): nO(jj) = tN
                 tW0 = oW(ii, 0): oW(ii, 0) = oW(jj, 0): oW(jj, 0) = tW0
                 tW1 = oW(ii, 1): oW(ii, 1) = oW(jj, 1): oW(jj, 1) = tW1
@@ -626,19 +695,39 @@ Private Sub AnidarPiezas(pL() As Double, pA() As Double, pVeta() As Long, _
         Next jj
     Next ii
 
-    ' --- Colocacion por franjas ---
-    Dim tableros As Long      ' tableros completos cerrados
+    ' --- Pasada 1: piezas normales, con margenes de orilla ---
+    Dim tab1 As Long, area1 As Double
+    Call ColocarPasada(pL, pA, nO, oW, oH, pClase, nP, 0, utilL, utilA, tab1, area1)
+
+    ' --- Pasada 2: piezas sin margen, sobre el tablero completo ---
+    Dim tab2 As Long, area2 As Double
+    Call ColocarPasada(pL, pA, nO, oW, oH, pClase, nP, 1, tabLv, tabAv, tab2, area2)
+
+    ' --- Resultado: exacto (1 decimal) y unidades a pedir ---
+    exacto = tab1 + Decimal1(area1, utilL * utilA) + _
+             tab2 + Decimal1(area2, tabLv * tabAv)
+    pedir = tab1 + IIf(area1 > 0, 1, 0) + tab2 + IIf(area2 > 0, 1, 0)
+End Sub
+
+
+' ColocarPasada: nesting por franjas de las piezas de una clase concreta,
+' con los limites de colocacion indicados (con o sin margenes de orilla)
+Private Sub ColocarPasada(pL() As Double, pA() As Double, nO() As Long, _
+                          oW() As Double, oH() As Double, pClase() As Long, _
+                          nP As Long, clase As Long, _
+                          limL As Double, limA As Double, _
+                          ByRef tableros As Long, ByRef areaLast As Double)
+    Dim p As Long, o As Long
     Dim curX As Double        ' X ocupado en la franja actual
     Dim curY As Double        ' Y de inicio de la franja actual
     Dim shelfH As Double      ' alto de la franja actual
-    Dim areaLast As Double    ' area de piezas en el tablero abierto
     tableros = 0: curX = 0: curY = 0: shelfH = 0: areaLast = 0
 
     Dim placed As Boolean
     Dim w As Double, h As Double, needX As Double, newH As Double, newY As Double
 
     For p = 0 To nP - 1
-        If Not pSkip(p) Then
+        If pClase(p) = clase Then
             placed = False
 
             ' Paso A: colocar en la franja actual
@@ -646,7 +735,7 @@ Private Sub AnidarPiezas(pL() As Double, pA() As Double, pVeta() As Long, _
                 w = oW(p, o): h = oH(p, o)
                 If curX = 0 Then needX = w Else needX = curX + SEP + w
                 newH = shelfH: If h > newH Then newH = h
-                If needX <= utilA And curY + newH <= utilL Then
+                If needX <= limA And curY + newH <= limL Then
                     curX = needX
                     shelfH = newH
                     areaLast = areaLast + pL(p) * pA(p)
@@ -660,7 +749,7 @@ Private Sub AnidarPiezas(pL() As Double, pA() As Double, pVeta() As Long, _
                 For o = 0 To nO(p) - 1
                     w = oW(p, o): h = oH(p, o)
                     newY = curY + shelfH + SEP
-                    If newY + h <= utilL And w <= utilA Then
+                    If newY + h <= limL And w <= limA Then
                         curY = newY
                         shelfH = h
                         curX = w
@@ -677,7 +766,7 @@ Private Sub AnidarPiezas(pL() As Double, pA() As Double, pVeta() As Long, _
                 curX = 0: curY = 0: shelfH = 0: areaLast = 0
                 For o = 0 To nO(p) - 1
                     w = oW(p, o): h = oH(p, o)
-                    If w <= utilA And h <= utilL Then
+                    If w <= limA And h <= limL Then
                         curX = w
                         shelfH = h
                         areaLast = pL(p) * pA(p)
@@ -688,20 +777,20 @@ Private Sub AnidarPiezas(pL() As Double, pA() As Double, pVeta() As Long, _
             End If
         End If
     Next p
+End Sub
 
-    ' --- Resultado: exacto (1 decimal) y unidades a pedir ---
-    Dim areaUtil As Double, dec As Double
-    areaUtil = utilL * utilA
+
+' Decimal1: fraccion de tablero ocupada, redondeada a 1 decimal (min 0.1)
+Private Function Decimal1(areaPiezas As Double, areaTablero As Double) As Double
+    Dim dec As Double
     dec = 0
-    If areaLast > 0 Then
-        dec = Int(areaLast / areaUtil * 10 + 0.5) / 10
+    If areaPiezas > 0 And areaTablero > 0 Then
+        dec = Int(areaPiezas / areaTablero * 10 + 0.5) / 10
         If dec < 0.1 Then dec = 0.1
         If dec > 1 Then dec = 1
     End If
-
-    exacto = tableros + dec
-    pedir = tableros + IIf(areaLast > 0, 1, 0)
-End Sub
+    Decimal1 = dec
+End Function
 
 
 ' =====================================================================
@@ -781,8 +870,14 @@ Private Sub LimpiarZonaSalida(ws As Worksheet, dataLast As Long, matCount As Lon
     Dim zona As Range
     Set zona = ws.Rows(dataLast + 1 & ":" & hastaFila)
     On Error Resume Next
+    ' Tablas de Excel de una ejecucion anterior (solo las de la zona de salida)
+    Dim i As Long
+    For i = ws.ListObjects.Count To 1 Step -1
+        If ws.ListObjects(i).Range.Row > dataLast Then ws.ListObjects(i).Delete
+    Next i
     zona.Validation.Delete
-    ws.Buttons(BTN_NAME).Delete
+    ws.Buttons(BTN_NAME).Delete     ' boton clasico de versiones anteriores
+    ws.Shapes(BTN_NAME).Delete
     On Error GoTo 0
     zona.Clear
 End Sub

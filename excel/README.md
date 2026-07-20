@@ -60,8 +60,15 @@ Debajo de los datos aparecen dos tablas:
 
 - **A PEDIR** es la cantidad a comprar (redondeo hacia arriba, en verde).
 - **EXACTO** es el cálculo con un decimal, como referencia de aprovechamiento.
-- Si una pieza no cabe en ningún tablero, aparece una fila **en rojo** con sus
-  dimensiones: hay que revisarla antes de hacer el pedido.
+- Ambas tablas llevan **filtros** en la cabecera para ordenarlas por cualquier
+  columna (material, tableros a pedir…).
+- Una pieza que solo cabe usando el **tablero completo** (p. ej. 3050×1220 o
+  3050×200: entra en el bruto pero no deja sitio a los 12 mm de orilla) sí se
+  cuenta en los tableros a pedir y aparece avisada **en naranja** con su
+  Cod. Pieza: va sin margen de orilla y hay que revisarla antes de cortar.
+- Una pieza que no cabe ni en el tablero bruto aparece **en rojo** con su
+  Cod. Pieza y cantidad, y no se cuenta: hay que resolverla antes del pedido
+  (¿existe ese material en formato mayor? → cambia su medida y RECALCULAR).
 
 ## Reglas del cálculo
 
