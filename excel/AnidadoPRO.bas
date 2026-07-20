@@ -41,6 +41,7 @@ Private Const SEP As Double = 17          ' Separacion piezas/franjas: 12 libre 
 
 ' --- Columnas del CSV del SIG (1=A, 2=B, 3=C...) ---
 Private Const C_MAT As Long = 3     ' C: Mat. - recubr. - esp.
+Private Const C_COD As Long = 5     ' E: Cod. Pieza
 Private Const C_QTY As Long = 8     ' H: Cantidad
 Private Const C_L As Long = 9       ' I: Largo (mm, direccion de la veta)
 Private Const C_A As Long = 10      ' J: Ancho (mm)
@@ -453,10 +454,12 @@ Private Sub CalcularGrupo(ws As Worksheet, dataLast As Long, mats As Object, _
     Dim pL() As Double, pA() As Double
     Dim pVeta() As Long      ' 0 = sin veta, 1 = veta en Largo, 2 = veta en Ancho
     Dim pGiro() As Boolean
+    Dim pCod() As String     ' Cod. Pieza, para los avisos de piezas imposibles
     ReDim pL(0 To nP - 1)
     ReDim pA(0 To nP - 1)
     ReDim pVeta(0 To nP - 1)
     ReDim pGiro(0 To nP - 1)
+    ReDim pCod(0 To nP - 1)
 
     Dim idx As Long, k As Long
     Dim vetaTxt As String, veta As Long
@@ -493,6 +496,7 @@ Private Sub CalcularGrupo(ws As Worksheet, dataLast As Long, mats As Object, _
                             pA(idx) = rawA
                             pVeta(idx) = veta
                             pGiro(idx) = giro
+                            pCod(idx) = Trim$(CStr(ws.Cells(r, C_COD).Value))
                             idx = idx + 1
                         Next k
                     End If
@@ -501,7 +505,7 @@ Private Sub CalcularGrupo(ws As Worksheet, dataLast As Long, mats As Object, _
         End If
     Next r
 
-    Call AnidarPiezas(pL, pA, pVeta, pGiro, nP, utilL, utilA, _
+    Call AnidarPiezas(pL, pA, pVeta, pGiro, pCod, nP, utilL, utilA, _
                       nombreGrupo, tabLv, tabAv, exacto, pedir, imposibles)
 End Sub
 
@@ -510,7 +514,7 @@ End Sub
 ' AnidarPiezas: nesting por franjas (guillotina) respetando la veta
 ' =====================================================================
 Private Sub AnidarPiezas(pL() As Double, pA() As Double, pVeta() As Long, _
-                         pGiro() As Boolean, nP As Long, _
+                         pGiro() As Boolean, pCod() As String, nP As Long, _
                          utilL As Double, utilA As Double, _
                          nombreGrupo As String, tabLv As Double, tabAv As Double, _
                          ByRef exacto As Double, ByRef pedir As Long, _
@@ -553,9 +557,15 @@ Private Sub AnidarPiezas(pL() As Double, pA() As Double, pVeta() As Long, _
         End Select
     Next p
 
-    ' Piezas imposibles: no caben en un tablero vacio en ninguna orientacion
+    ' Piezas imposibles: no caben en un tablero vacio en ninguna orientacion.
+    ' Se agrupan por Cod. Pieza y dimensiones para dar un solo aviso con la
+    ' cantidad de unidades afectadas.
     Dim pSkip() As Boolean
     ReDim pSkip(0 To nP - 1)
+    Dim impDict As Object
+    Set impDict = CreateObject("Scripting.Dictionary")
+    Dim clave As Variant
+
     For p = 0 To nP - 1
         pSkip(p) = True
         For o = 0 To nO(p) - 1
@@ -565,12 +575,24 @@ Private Sub AnidarPiezas(pL() As Double, pA() As Double, pVeta() As Long, _
             End If
         Next o
         If pSkip(p) Then
-            imposibles.Add "NO CABE: pieza de " & Format$(pL(p), "0.##") & " x " & _
-                           Format$(pA(p), "0.##") & " mm en tablero de " & _
-                           Format$(tabLv, "0") & " x " & Format$(tabAv, "0") & _
-                           "  (" & nombreGrupo & ")"
+            clave = pCod(p) & "|" & FmtMM(pL(p)) & " x " & FmtMM(pA(p))
+            If impDict.Exists(clave) Then
+                impDict(clave) = impDict(clave) + 1
+            Else
+                impDict.Add clave, 1
+            End If
         End If
     Next p
+
+    For Each clave In impDict.Keys
+        Dim partes() As String
+        partes = Split(CStr(clave), "|")
+        imposibles.Add "NO CABE: " & impDict(clave) & " ud" & _
+                       IIf(impDict(clave) > 1, "s", "") & " de " & partes(1) & _
+                       " mm - Cod. Pieza " & partes(0) & _
+                       "  (" & nombreGrupo & ", tablero " & Format$(tabLv, "0") & _
+                       " x " & Format$(tabAv, "0") & ")"
+    Next clave
 
     ' Ordenar de mayor a menor por alto de colocacion; en empate, por ancho
     Dim ii As Long, jj As Long
@@ -830,6 +852,15 @@ End Sub
 ' =====================================================================
 ' Utilidades
 ' =====================================================================
+
+' FmtMM: formatea una medida sin dejar separador decimal colgando (3230, 860,5)
+Private Function FmtMM(x As Double) As String
+    If x = Int(x) Then
+        FmtMM = Format$(x, "0")
+    Else
+        FmtMM = Format$(x, "0.##")
+    End If
+End Function
 
 ' ToNum: convierte a numero aceptando punto o coma decimal
 Private Function ToNum(v As Variant) As Double
