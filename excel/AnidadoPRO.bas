@@ -275,6 +275,11 @@ Public Sub AnidadoPRO()
     Dim r0 As Long
     r0 = dataLast + 3
 
+    ' El boton RECALCULAR se crea (o reposiciona) lo primero, antes de dibujar
+    ' tablas o validaciones: asi ningun error posterior puede dejar la hoja sin
+    ' boton, y al no borrarlo en cada pasada no queda en un limbo "sin boton".
+    Call AsegurarBotonRecalcular(ws, r0)
+
     ' ---- Tabla MEDIDAS DE TABLERO ----
     Call EstiloTitulo(ws.Range(ws.Cells(r0, COL_OUT), ws.Cells(r0, COL_OUT + 3)), TIT_MEDIDAS)
     Call EstiloCabecera(ws.Cells(r0 + 1, COL_OUT), "MATERIAL")
@@ -376,24 +381,6 @@ Public Sub AnidadoPRO()
     loMed.Name = "TablaMedidasTablero"
     loMed.TableStyle = ""
     On Error GoTo Fallo
-
-    ' Boton RECALCULAR junto al titulo (forma amarilla con macro asignada)
-    Dim btn As Shape
-    Set btn = ws.Shapes.AddShape(msoShapeRoundedRectangle, _
-                                 ws.Cells(r0, COL_OUT + 4).Left + 5, _
-                                 ws.Cells(r0, COL_OUT + 4).Top - 2, 130, 26)
-    btn.Name = BTN_NAME
-    btn.Fill.ForeColor.RGB = RGB(255, 204, 0)
-    btn.Line.ForeColor.RGB = RGB(175, 140, 0)
-    With btn.TextFrame2
-        .TextRange.Text = "RECALCULAR"
-        .TextRange.Font.Bold = msoTrue
-        .TextRange.Font.Size = 11
-        .TextRange.Font.Fill.ForeColor.RGB = RGB(0, 0, 0)
-        .TextRange.ParagraphFormat.Alignment = msoAlignCenter
-        .VerticalAnchor = msoAnchorMiddle
-    End With
-    btn.OnAction = "'" & ThisWorkbook.Name & "'!AnidadoPRO"
 
     ' ---- Tabla TABLEROS A PEDIR ----
     Dim rRes As Long
@@ -924,9 +911,65 @@ Private Sub LimpiarZonaSalida(ws As Worksheet, dataLast As Long, matCount As Lon
     Next i
     zona.Validation.Delete
     ws.Buttons(BTN_NAME).Delete     ' boton clasico de versiones anteriores
-    ws.Shapes(BTN_NAME).Delete
     On Error GoTo 0
+    ' El boton-forma NO se borra aqui: se reutiliza en AsegurarBotonRecalcular
+    ' para que nunca quede la hoja sin boton entre borrado y recreacion.
+    ' zona.Clear no elimina formas flotantes, asi que el boton sobrevive.
     zona.Clear
+End Sub
+
+
+' =====================================================================
+' AsegurarBotonRecalcular: crea el boton amarillo si no existe, o lo
+' reposiciona si ya estaba. Nunca deja la hoja sin boton.
+' =====================================================================
+Private Sub AsegurarBotonRecalcular(ws As Worksheet, r0 As Long)
+    Dim btn As Shape
+    Dim posL As Double, posT As Double
+
+    posL = ws.Cells(r0, COL_OUT + 4).Left + 5
+    posT = ws.Cells(r0, COL_OUT + 4).Top - 2
+
+    ' Reutilizar el boton existente si lo hay (puede haber sobras si una
+    ' version anterior dejo duplicados: nos quedamos con el primero y
+    ' borramos el resto).
+    Dim s As Shape, encontrado As Boolean
+    encontrado = False
+    Dim k As Long
+    For k = ws.Shapes.Count To 1 Step -1
+        Set s = ws.Shapes(k)
+        If s.Name = BTN_NAME Then
+            If encontrado Then
+                s.Delete                 ' duplicado sobrante
+            Else
+                Set btn = s
+                encontrado = True
+            End If
+        End If
+    Next k
+
+    If btn Is Nothing Then
+        Set btn = ws.Shapes.AddShape(msoShapeRoundedRectangle, posL, posT, 130, 26)
+        btn.Name = BTN_NAME
+        btn.Fill.ForeColor.RGB = RGB(255, 204, 0)
+        btn.Line.ForeColor.RGB = RGB(175, 140, 0)
+        With btn.TextFrame2
+            .TextRange.Text = "RECALCULAR"
+            .TextRange.Font.Bold = msoTrue
+            .TextRange.Font.Size = 11
+            .TextRange.Font.Fill.ForeColor.RGB = RGB(0, 0, 0)
+            .TextRange.ParagraphFormat.Alignment = msoAlignCenter
+            .VerticalAnchor = msoAnchorMiddle
+        End With
+    Else
+        btn.Left = posL
+        btn.Top = posT
+    End If
+
+    ' Flotante: no se mueve ni se redimensiona con las celdas (evita que se
+    ' colapse al limpiar o crear tablas debajo).
+    btn.Placement = xlFreeFloating
+    btn.OnAction = "'" & ThisWorkbook.Name & "'!AnidadoPRO"
 End Sub
 
 
