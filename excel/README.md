@@ -4,7 +4,11 @@ Macro VBA para Excel que calcula cuántos tableros hay que **pedir** por materia
 a partir del CSV de despiece exportado del SIG, usando nesting por franjas
 (guillotina) que respeta la dirección de la veta de cada pieza.
 
-Archivo: [`AnidadoPRO.bas`](AnidadoPRO.bas)
+Archivos:
+- [`AnidadoPRO.bas`](AnidadoPRO.bas) — versión de tableros (V1).
+- [`AnidadoPRO_V2.bas`](AnidadoPRO_V2.bas) — **V2**: lo mismo que la V1 **más un
+  tercer cuadro con los metros de canto a pedir**. Ver [sección V2](#v2--cantos)
+  al final. Es la versión recomendada; la V1 se conserva por compatibilidad.
 
 ---
 
@@ -90,9 +94,60 @@ Reglas de veta (columna *Dir. Veta* del CSV):
 - Vacío o `0` → sin veta; gira solo si *Permite giro* = 1.
 - Si una fila trae veta y *Permite giro* = 1 a la vez, **la veta manda**: no gira.
 
+## Materiales iguales escritos distinto
+
+La macro agrupa como el **mismo material** los nombres que solo difieren en
+guiones o espacios de más: `MDF--16`, `MDF---16` y `MDF   --16` se tratan como
+uno solo automáticamente. Para diferencias mayores (una palabra escrita de otra
+forma, p. ej. `BLANCA` vs `BLAN`) marca el posible duplicado en amarillo y se
+unen a mano con **MISMO QUE**.
+
 ## Futuro previsto
 
 La tabla MEDIDAS DE TABLERO es el punto de enganche para automatizar las
 medidas por material desde un Excel/JSON maestro de materiales: cuando exista,
 solo habrá que rellenarla automáticamente y saltarse la revisión manual, sin
 tocar el algoritmo.
+
+---
+
+## <a name="v2--cantos"></a>V2 — Cantos
+
+`AnidadoPRO_V2.bas` hace todo lo anterior y añade un tercer cuadro,
+**CANTOS A PEDIR**, con los metros de canto a pedir por material. Se instala y
+ejecuta igual que la V1 (macro `AnidadoPRO_V2`), con el mismo botón RECALCULAR
+que recalcula los tres cuadros a la vez.
+
+### Cómo calcula el canto
+
+De la columna *Canteado* (`1L`, `2C 2L`, `1C 2L`, `0`, vacío):
+- `nL` = nº de cantos en el lado **largo** (la medida **mayor** de la pieza).
+- `nC` = nº de cantos en el lado **corto** (la medida **menor**).
+- **Metros exactos por pieza** = `nL × ladoLargo + nC × ladoCorto`.
+- **Metros a pedir** = exactos **+ 20 mm por cada canto** (borde), por pieza.
+  Ej.: 10 piezas de 100×30 con `1L` → 1000 mm exactos / 1200 mm a pedir.
+
+El canto no depende del nesting y se cuenta aunque la pieza no quepa en tablero.
+La columna *Ingletado* **no** influye en el canto.
+
+### Material del canto
+
+- Si *Comentarios Canteado* tiene texto → ese texto **literal**
+  (`CANTO PVC BLANCO`, `Cantear frente`…).
+- Si está vacío → material del tablero **sin el espesor**
+  (`AGLOMERADO-S/ORDEN-16` → `AGLOMERADO-S/ORDEN`).
+
+El cuadro de canto tiene su **propia columna MISMO QUE** (desplegable) y
+marca en amarillo los cantos casi iguales: se unen a mano igual que los
+materiales de tablero y se pulsa RECALCULAR. Los comentarios que en realidad
+son una nota (`Cantear frente`, `FRENTE`…) aparecen como su propia fila y se
+unen a su material con MISMO QUE.
+
+### Parámetros ajustables (al inicio del módulo)
+
+| Constante | Valor | Qué es |
+|---|---|---|
+| `DEF_TAB_L` / `DEF_TAB_A` | 3050 / 1220 | Medida estándar de tablero (mm) |
+| `MARGEN` | 12 | Orilla en los 4 lados (mm) |
+| `SEP` | 17 | Separación entre piezas y franjas (mm) |
+| `EXTRA_CANTO_MM` | 20 | Extra de canto por cada borde (mm) |
