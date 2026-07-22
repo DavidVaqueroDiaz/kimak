@@ -67,6 +67,10 @@ Debajo de los datos aparecen dos tablas:
 
 - **A PEDIR** es la cantidad a comprar (redondeo hacia arriba, en verde).
 - **EXACTO** es el cálculo con un decimal, como referencia de aprovechamiento.
+- **M² REALES** (solo en la V2): metros cuadrados de tablero realmente
+  consumidos = `EXACTO × área del tablero completo` (incluye piezas,
+  separaciones y orilla). El último tablero parcial cuenta solo su fracción
+  (0,1 → 0,1 × área), no un tablero entero. Con su total al final.
 - Ambas tablas llevan **filtros** en la cabecera para ordenarlas por cualquier
   columna (material, tableros a pedir…).
 - Una pieza que solo cabe usando el **tablero completo** (p. ej. 3050×1220 o

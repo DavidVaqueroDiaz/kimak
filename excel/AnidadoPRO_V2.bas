@@ -26,8 +26,11 @@ Attribute VB_Name = "Mod_AnidadoPRO_V2"
 '   - MEDIDAS DE TABLERO: medida editable por material (3050x1220 por
 '     defecto) y columna MISMO QUE (desplegable) para unificar materiales
 '     duplicados por errores de escritura. Posibles duplicados en amarillo.
-'   - TABLEROS A PEDIR: material, medida, calculo exacto y unidades a
-'     pedir (redondeadas hacia arriba). Avisos en rojo/naranja (ver abajo).
+'   - TABLEROS A PEDIR: material, medida, calculo exacto, unidades a pedir
+'     (redondeadas hacia arriba) y M2 reales. Avisos rojo/naranja (abajo).
+'     M2 reales = EXACTO x area del tablero completo (incluye piezas,
+'     separaciones y orilla). El ultimo tablero parcial cuenta solo su
+'     fraccion (0.1 -> 0.1 x area), no un tablero entero.
 '   - CANTOS A PEDIR: material de canto, MISMO QUE (desplegable para
 '     unir cantos iguales escritos distinto), metros exactos y metros a
 '     pedir (con el extra de seguridad). Posibles duplicados en amarillo.
@@ -401,14 +404,16 @@ Public Sub AnidadoPRO_V2()
     ' ---- Tabla TABLEROS A PEDIR ----
     Dim rRes As Long
     rRes = r0 + matCount + 4
-    Call EstiloTitulo(ws.Range(ws.Cells(rRes, COL_OUT), ws.Cells(rRes, COL_OUT + 3)), TIT_RESULT)
+    Call EstiloTitulo(ws.Range(ws.Cells(rRes, COL_OUT), ws.Cells(rRes, COL_OUT + 4)), TIT_RESULT)
     Call EstiloCabecera(ws.Cells(rRes + 1, COL_OUT), "MATERIAL")
     Call EstiloCabecera(ws.Cells(rRes + 1, COL_OUT + 1), "MEDIDA TABLERO")
     Call EstiloCabecera(ws.Cells(rRes + 1, COL_OUT + 2), "EXACTO")
     Call EstiloCabecera(ws.Cells(rRes + 1, COL_OUT + 3), "A PEDIR")
+    Call EstiloCabecera(ws.Cells(rRes + 1, COL_OUT + 4), "M2 REALES")
 
     Dim totalPedir As Long, nGrupos As Long
-    totalPedir = 0: nGrupos = 0
+    Dim totalM2 As Double, m2 As Double
+    totalPedir = 0: nGrupos = 0: totalM2 = 0
     fila = rRes + 1
     For t = 0 To matCount - 1
         If destino(t) = t Then
@@ -430,12 +435,21 @@ Public Sub AnidadoPRO_V2()
                 .HorizontalAlignment = xlCenter
                 .Interior.Color = RGB(226, 239, 218)
             End With
+            ' M2 reales = tableros EXACTOS x area del tablero completo (incluye
+            ' piezas, separaciones y orilla). El ultimo tablero parcial cuenta
+            ' solo su fraccion (0.1 -> 0.1 x area), no un tablero entero.
+            m2 = exactoG(t) * tabL(t) * tabA(t) / 1000000#
+            With ws.Cells(fila, COL_OUT + 4)
+                .Value = m2: .NumberFormat = "0.00"
+                If nGrupos Mod 2 = 0 Then .Interior.Color = RGB(242, 246, 252)
+            End With
             totalPedir = totalPedir + pedirG(t)
+            totalM2 = totalM2 + m2
         End If
     Next t
 
     fila = fila + 1
-    With ws.Range(ws.Cells(fila, COL_OUT), ws.Cells(fila, COL_OUT + 3))
+    With ws.Range(ws.Cells(fila, COL_OUT), ws.Cells(fila, COL_OUT + 4))
         .Interior.Color = RGB(31, 56, 100)
         .Font.Color = RGB(255, 255, 255): .Font.Bold = True
     End With
@@ -444,9 +458,13 @@ Public Sub AnidadoPRO_V2()
         .Value = totalPedir: .NumberFormat = "0"
         .Font.Size = 12: .HorizontalAlignment = xlCenter
     End With
+    With ws.Cells(fila, COL_OUT + 4)
+        .Value = totalM2: .NumberFormat = "0.00"
+        .Font.Size = 12: .HorizontalAlignment = xlCenter
+    End With
 
-    Call Bordear(ws.Range(ws.Cells(rRes + 1, COL_OUT), ws.Cells(fila, COL_OUT + 3)))
-    If nGrupos > 0 Then Call ConvertirEnTabla(ws, rRes + 1, fila - 1, "TablaTablerosAPedirV2")
+    Call Bordear(ws.Range(ws.Cells(rRes + 1, COL_OUT), ws.Cells(fila, COL_OUT + 4)))
+    If nGrupos > 0 Then Call ConvertirEnTabla(ws, rRes + 1, fila - 1, "TablaTablerosAPedirV2", COL_OUT + 4)
 
     ' ---- Avisos: rojo = no cabe; naranja = usa el tablero sin margen ----
     Dim k As Long
@@ -560,6 +578,7 @@ Public Sub AnidadoPRO_V2()
     If ws.Columns(COL_OUT + 1).ColumnWidth < 15 Then ws.Columns(COL_OUT + 1).ColumnWidth = 15
     If ws.Columns(COL_OUT + 2).ColumnWidth < 15 Then ws.Columns(COL_OUT + 2).ColumnWidth = 15
     If ws.Columns(COL_OUT + 3).ColumnWidth < 48 Then ws.Columns(COL_OUT + 3).ColumnWidth = 48
+    If ws.Columns(COL_OUT + 4).ColumnWidth < 12 Then ws.Columns(COL_OUT + 4).ColumnWidth = 12
 
     Application.GoTo ws.Cells(r0, 1), True
     Application.ScreenUpdating = True
@@ -669,12 +688,15 @@ Private Sub PonerDesplegable(ws As Worksheet, fila As Long, colCelda As Long, _
 End Sub
 
 
-' ConvertirEnTabla: convierte un rango en tabla de Excel con filtros
-Private Sub ConvertirEnTabla(ws As Worksheet, filaCab As Long, filaFin As Long, nombre As String)
+' ConvertirEnTabla: convierte un rango en tabla de Excel con filtros.
+' colFin es la ultima columna; si se omite, COL_OUT+3 (4 columnas).
+Private Sub ConvertirEnTabla(ws As Worksheet, filaCab As Long, filaFin As Long, _
+                             nombre As String, Optional colFin As Long = -1)
+    If colFin < 0 Then colFin = COL_OUT + 3
     On Error Resume Next
     Dim lo As ListObject
     Set lo = ws.ListObjects.Add(xlSrcRange, _
-        ws.Range(ws.Cells(filaCab, COL_OUT), ws.Cells(filaFin, COL_OUT + 3)), , xlYes)
+        ws.Range(ws.Cells(filaCab, COL_OUT), ws.Cells(filaFin, colFin)), , xlYes)
     lo.Name = nombre
     lo.TableStyle = ""
     On Error GoTo 0
