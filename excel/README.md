@@ -132,16 +132,17 @@ La columna *Ingletado* **no** influye en el canto.
 
 ### Material del canto
 
-- Si *Comentarios Canteado* tiene texto → ese texto **literal**
-  (`CANTO PVC BLANCO`, `Cantear frente`…).
-- Si está vacío → material del tablero **sin el espesor**
+- **Siempre** el material del tablero **sin el espesor**
   (`AGLOMERADO-S/ORDEN-16` → `AGLOMERADO-S/ORDEN`).
+- Si la fila tiene *Comentarios Canteado*, ese texto se **añade entre
+  paréntesis** y la celda se pinta de **naranja** para revisarla
+  (`AGLOMERADO-S/ORDEN (CANTO PVC BLANCO)`).
 
-El cuadro de canto tiene su **propia columna MISMO QUE** (desplegable) y
-marca en amarillo los cantos casi iguales: se unen a mano igual que los
-materiales de tablero y se pulsa RECALCULAR. Los comentarios que en realidad
-son una nota (`Cantear frente`, `FRENTE`…) aparecen como su propia fila y se
-unen a su material con MISMO QUE.
+Así cada canto queda siempre ligado a un material real. El cuadro tiene su
+**propia columna MISMO QUE** (desplegable) y marca en amarillo los cantos casi
+iguales: se unen a mano igual que los materiales de tablero y se pulsa
+RECALCULAR. Las filas en naranja (con comentario) son las que conviene mirar
+antes de pedir.
 
 ### Parámetros ajustables (al inicio del módulo)
 

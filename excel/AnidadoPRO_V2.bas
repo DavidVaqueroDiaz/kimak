@@ -64,12 +64,11 @@ Attribute VB_Name = "Mod_AnidadoPRO_V2"
 '   El calculo no depende del nesting (es propio de la pieza) y se cuenta
 '   aunque la pieza no quepa en tablero.
 '
-'   Material del canto:
-'     - Si "Comentarios Canteado" tiene texto -> ese texto, LITERAL
-'       (ej: "CANTO PVC BLANCO"). Si es una nota ("Cantear frente"...) se
-'       podra unir a otro con MISMO QUE, igual que en los tableros.
-'     - Si esta vacio -> Material-recubrimiento SIN el espesor
-'       (ej: "AGLOMERADO-S/ORDEN-16" -> "AGLOMERADO-S/ORDEN").
+'   Material del canto: SIEMPRE el material del tablero sin el espesor
+'     (ej: "AGLOMERADO-S/ORDEN-16" -> "AGLOMERADO-S/ORDEN"). Si la fila
+'     tiene "Comentarios Canteado", ese texto se anade entre parentesis y
+'     la celda se pinta de NARANJA para revisarla
+'     (ej: "AGLOMERADO-S/ORDEN (CANTO PVC BLANCO)").
 '   La columna Ingletado NO influye en el canto (se ignora).
 '
 ' MATERIALES IGUALES ESCRITOS DISTINTO
@@ -270,7 +269,7 @@ Public Sub AnidadoPRO_V2()
     Dim cantos As Object
     Set cantos = CreateObject("Scripting.Dictionary")
     cantos.CompareMode = vbTextCompare
-    Dim cantoNames() As String, cantoCount As Long
+    Dim cantoNames() As String, cantoNaranja() As Boolean, cantoCount As Long
     cantoCount = 0
 
     Dim nLc As Long, nCc As Long, cmat As String
@@ -282,7 +281,9 @@ Public Sub AnidadoPRO_V2()
                     cmat = CantoMaterial(ws, r)
                     If cmat <> "" And Not cantos.Exists(ClaveMaterial(cmat)) Then
                         ReDim Preserve cantoNames(0 To cantoCount)
+                        ReDim Preserve cantoNaranja(0 To cantoCount)
                         cantoNames(cantoCount) = cmat
+                        cantoNaranja(cantoCount) = CantoTieneComentario(ws, r)
                         cantos.Add ClaveMaterial(cmat), cantoCount
                         cantoCount = cantoCount + 1
                     End If
@@ -488,8 +489,10 @@ Public Sub AnidadoPRO_V2()
             fila = rCanto + 2 + c
             With ws.Cells(fila, COL_OUT)
                 .Value = cantoNames(c)
-                If sospechosoC(c) Then
-                    .Interior.Color = RGB(255, 235, 156)
+                If cantoNaranja(c) Then
+                    .Interior.Color = RGB(255, 192, 0)     ' naranja: tiene comentario, revisar
+                ElseIf sospechosoC(c) Then
+                    .Interior.Color = RGB(255, 235, 156)   ' amarillo: posible duplicado
                 ElseIf c Mod 2 = 1 Then
                     .Interior.Color = RGB(242, 246, 252)
                 End If
@@ -1214,17 +1217,25 @@ Private Sub ParseCanteado(txt As String, ByRef nL As Long, ByRef nC As Long)
 End Sub
 
 
-' CantoMaterial: material del canto de una fila. Si "Comentarios Canteado"
-' tiene texto, se usa literal; si esta vacio, el material del tablero sin
-' el espesor.
+' CantoMaterial: material del canto de una fila. SIEMPRE el material del
+' tablero sin el espesor; si "Comentarios Canteado" tiene texto, se anade
+' entre parentesis (esa fila se pintara de naranja para revisar).
+'   ""                 -> "AGLOMERADO-S/ORDEN"
+'   "CANTO PVC BLANCO" -> "AGLOMERADO-S/ORDEN (CANTO PVC BLANCO)"
 Private Function CantoMaterial(ws As Worksheet, r As Long) As String
-    Dim com As String
+    Dim base As String, com As String
+    base = MaterialSinEspesor(Trim$(CStr(ws.Cells(r, C_MAT).Value)))
     com = Trim$(CStr(ws.Cells(r, C_COM_CANTO).Value))
     If com <> "" Then
-        CantoMaterial = com
+        CantoMaterial = base & " (" & com & ")"
     Else
-        CantoMaterial = MaterialSinEspesor(Trim$(CStr(ws.Cells(r, C_MAT).Value)))
+        CantoMaterial = base
     End If
+End Function
+
+' CantoTieneComentario: True si la fila trae texto en Comentarios Canteado
+Private Function CantoTieneComentario(ws As Worksheet, r As Long) As Boolean
+    CantoTieneComentario = (Trim$(CStr(ws.Cells(r, C_COM_CANTO).Value)) <> "")
 End Function
 
 
