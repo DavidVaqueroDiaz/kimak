@@ -11,7 +11,7 @@ Array JSON de objetos con estos campos:
 fecha_modificacion va en ISO 8601 con zona horaria (ej. 2026-07-10T10:38:43.9500889+02:00).
 
 === REGLAS (aplícalas literalmente) ===
-1. Quédate solo con las extensiones .ard, .cix y .hop.
+1. Quédate SOLO con los archivos de extensión .ard. Descarta cualquier otra extensión.
 
 2. Busca el código de pieza dentro de "nombre_sin_ext" con este regex de Python
    (puede estar en cualquier parte del nombre, no solo al principio):

@@ -29,7 +29,7 @@ que tocar la política de PowerShell del PC).
 |---|---|
 | Revisión `_A`, `_B`, `_D` | **Piezas distintas.** El código completo incluye la letra. En el índice de M2 hay 416 piezas con varias revisiones. |
 | `Cara A` / `Cara B` | **Se copian por separado** (casilla activada). Son dos programas distintos de la misma pieza: agrupándolos se perdería el de la 2ª cara. Hay 130 códigos afectados. |
-| Extensión distinta (`.ard`, `.cix`, `.hop`) | Piezas distintas: son máquinas distintas. |
+| Extensión distinta (`.cix`, `.hop`) | No se copian: por defecto solo se procesan `.ard`. Si las añades en el cuadro de extensiones, cuentan como piezas distintas (son máquinas distintas). |
 | Archivos sin código (`DM 25mm.`, `PLACAS PVC ESPUMADO 10 MM BLANCO`) | **No se copian.** Son nestings/tableros. Salen en el CSV como `SIN CODIGO`. |
 
 `cara buena` y `cara mala` **no** se confunden con cara A/B (son notas de
@@ -37,7 +37,7 @@ orientación, 890 archivos en el índice de M2).
 
 ## Opciones de la ventana
 
-- **Extensiones**: por defecto `.ard;.cix;.hop`.
+- **Extensiones**: por defecto **solo `.ard`**. Si algún día quieres los de otras máquinas, escribe `.ard;.cix;.hop`.
 - **Filtro de ruta** (opcional): solo procesa archivos cuya ruta contenga ese texto (p. ej. `ZARA HOME`).
 - **Separar Cara A / Cara B**: activado.
 - **Comprobar fechas reales en disco**: solo mira el disco en los grupos con duplicados, para desempatar con la fecha real en lugar de la del índice. Más lento pero más fiable si el índice es viejo.

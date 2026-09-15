@@ -16,8 +16,8 @@
         copia su archivo mas reciente, para no perder el programa de la 2a cara.
       - Los archivos sin codigo de pieza (nestings, tableros: "DM 25mm.",
         "PLACAS PVC...") NO se copian; salen listados en el informe CSV.
-      - Cada extension se trata por separado (.ard / .cix / .hop son maquinas
-        distintas de la misma pieza).
+      - Por defecto solo se procesan los .ard. Si anades otras extensiones, cada
+        una se trata por separado (.cix / .hop son maquinas distintas).
 
 .EXAMPLE
     .\Copiar-Piezas.ps1
@@ -62,7 +62,7 @@ $RX_CODIGO = [regex]::new(
 $RX_CARA_B = [regex]::new('cara\s*[_\-\.]?\s*b(?![a-z])', $OPC)
 $RX_CARA_A = [regex]::new('cara\s*[_\-\.]?\s*a(?![a-z])', $OPC)
 
-$EXT_POR_DEFECTO = '.ard;.cix;.hop'
+$EXT_POR_DEFECTO = '.ard'
 $CARPETA_CONFIG  = [Environment]::GetFolderPath('ApplicationData')
 if (-not $CARPETA_CONFIG) { $CARPETA_CONFIG = [System.IO.Path]::GetTempPath() }
 $ARCHIVO_CONFIG  = Join-Path (Join-Path $CARPETA_CONFIG 'KIMAK') 'copiar-piezas.json'
@@ -155,7 +155,7 @@ function Invoke-CopiaPiezas {
     param(
         [Parameter(Mandatory = $true)][string] $Indice,
         [Parameter(Mandatory = $true)][string] $Destino,
-        [string[]]    $Extensiones   = @('.ard', '.cix', '.hop'),
+        [string[]]    $Extensiones   = @('.ard'),
         [string]      $FiltroRuta    = '',
         [bool]        $SepararCaras  = $true,
         [bool]        $FechasDeDisco = $false,

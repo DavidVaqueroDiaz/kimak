@@ -32,7 +32,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$EXT_POR_DEFECTO = '.ard;.cix;.hop'
+$EXT_POR_DEFECTO = '.ard'
 $CARPETA_CONFIG  = [Environment]::GetFolderPath('ApplicationData')
 if (-not $CARPETA_CONFIG) { $CARPETA_CONFIG = [System.IO.Path]::GetTempPath() }
 $ARCHIVO_CONFIG  = Join-Path (Join-Path $CARPETA_CONFIG 'KIMAK') 'generar-indice.json'
@@ -71,7 +71,7 @@ function Invoke-GenerarIndice {
     param(
         [Parameter(Mandatory = $true)][string] $Carpeta,
         [Parameter(Mandatory = $true)][string] $Salida,
-        [string[]]    $Extensiones     = @('.ard', '.cix', '.hop'),
+        [string[]]    $Extensiones     = @('.ard'),
         [string]      $Servidor        = 'M2',
         [bool]        $IncluirSubcarpetas = $true,
         [scriptblock] $OnLog           = $null,
