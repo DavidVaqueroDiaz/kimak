@@ -63,6 +63,26 @@ orientación, 890 archivos en el índice de M2).
 Parámetros de `Copiar-Piezas.ps1`: `-Extensiones`, `-FiltroRuta`, `-NoSepararCaras`,
 `-FechasDeDisco`, `-UsarFechaCreacion`, `-Sobrescribir`, `-Simular`.
 
+## Vía rápida sin tocar PowerShell (`COPIAR_PIEZAS.bat`)
+
+Si ya tienes la lista filtrada (`piezas_a_copiar.json`, un objeto por pieza con
+`ruta_completa` y `nombre_destino`):
+
+1. Deja `COPIAR_PIEZAS.bat` y `piezas_a_copiar.json` **en la misma carpeta**.
+2. Abre el `.bat` con el Bloc de notas y cambia la línea `set "DESTINO=D:\PIEZAS"`.
+3. Guarda y doble clic.
+
+Son 20 líneas de texto ASCII: no hay que cambiar la política de PowerShell, soporta
+rutas de más de 260 caracteres y va diciendo por dónde va.
+
+## Usar ChatGPT para generar la lista (`PROMPT-ChatGPT.md`)
+
+**ChatGPT no puede copiar los archivos**: su entorno no ve `\\servidor10\...`. Lo que sí
+puede es leer el índice de una carpeta, aplicar las reglas y devolverte
+`piezas_a_copiar.json` + `COPIAR_PIEZAS.bat` para que los ejecutes tú. El prompt de
+`PROMPT-ChatGPT.md` lleva las reglas escritas una a una para que el resultado sea el
+mismo que el de estos scripts.
+
 ## Formato del índice JSON
 
 Array plano; el script solo necesita `nombre`, `ruta_completa` y `fecha_modificacion`
