@@ -188,7 +188,8 @@
 
       <div class="botones noimprimir">
         <button type="button" id="btnCalcular">Calcular</button>
-        <button type="button" class="secundario" id="btnImprimir">Imprimir o guardar en PDF</button>
+        <button type="button" class="secundario" id="btnImprimir">Imprimir</button>
+        <button type="button" class="secundario" id="btnPdf">Guardar PDF</button>
       </div>
       <p class="error" id="error" hidden></p>
     </section>
@@ -484,11 +485,15 @@ function calcular(entrada){
 }
 
 /* ---------- pantalla ---------- */
+let ultimoResultado = null;   // filas [etiqueta, valor] del último cálculo, para el PDF
 function pintar(r){
   const ref = $("referencia").value.trim();
   const filas = [];
-  const fila = (etq, val, n=true) =>
-    `<tr><td>${etq}</td><td class="${n?'n':''}">${val}</td></tr>`;
+  const datosPdf = [];
+  const fila = (etq, val, n=true) => {
+    datosPdf.push([etq, val]);
+    return `<tr><td>${etq}</td><td class="${n?'n':''}">${val}</td></tr>`;
+  };
   const mat = `${NOMBRE_MATERIAL[r.material]} ${num(r.espesor,0)} mm`;
 
   if(ref) filas.push(fila("Referencia", ref, false));
@@ -514,6 +519,8 @@ function pintar(r){
     filas.push(fila("Volumen total", num(r.volumenTotal,3) + " m³"));
   }
   filas.push(`<tr class="total"><td>Total</td><td class="n">${eur(r.total)}</td></tr>`);
+  datosPdf.push(["Total", eur(r.total)]);
+  ultimoResultado = datosPdf;
 
   $("desglose").innerHTML = filas.join("");
   $("totalGrande").textContent = eur(r.total);
@@ -540,6 +547,72 @@ function alCalcular(){
     material: $("material").value,
     espesor: parseFloat($("espesorSel").value)
   }));
+}
+
+
+/* ---------- PDF ----------
+   Genera un PDF sencillo (una página A4, Helvetica) sin librerías y sin red.  */
+function textoPlano(h){ return String(h).replace(/<[^>]*>/g, ""); }
+
+function crearPdf(titulo, subtitulo, filas){
+  // Los caracteres se mandan como un byte (WinAnsi): el euro es 0x80.
+  const aByte = (t) => textoPlano(t).replace(/€/g, "\x80").replace(/[^\x00-\xff]/g, "?")
+    .replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+  const ancho = (t, tam) => {
+    let w = 0;
+    for(const c of textoPlano(t)) w += /[0-9]/.test(c) ? .556 : /[ .,:;]/.test(c) ? .278 : /[A-Z]/.test(c) ? .68 : .52;
+    return w * tam;
+  };
+  let y = 790, c = "BT /F2 16 Tf 50 " + y + " Td (" + aByte(titulo) + ") Tj ET\n";
+  y -= 18;
+  c += "BT /F1 10 Tf 50 " + y + " Td (" + aByte(subtitulo) + ") Tj ET\n";
+  y -= 14;
+  filas.forEach(([etq, val], i) => {
+    y -= 17;
+    const esTotal = i === filas.length - 1;
+    const f = esTotal ? "/F2 11" : "/F1 10";
+    if(esTotal){ c += "0.5 w 50 " + (y + 14) + " m 545 " + (y + 14) + " l S\n"; }
+    c += "BT " + f + " Tf 50 " + y + " Td (" + aByte(etq) + ") Tj ET\n";
+    const x = 545 - ancho(val, esTotal ? 11 : 10);
+    c += "BT " + f + " Tf " + x.toFixed(1) + " " + y + " Td (" + aByte(val) + ") Tj ET\n";
+  });
+  y -= 30;
+  c += "BT /F1 8 Tf 50 " + y + " Td (" + aByte("Calculo orientativo para presupuesto. Peso estimado a partir de la densidad del tablero.") + ") Tj ET\n";
+
+  const objs = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>",
+    "<< /Length " + c.length + " >>\nstream\n" + c + "endstream",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>"
+  ];
+  let out = "%PDF-1.4\n";
+  const pos = [];
+  objs.forEach((o, i) => { pos.push(out.length); out += (i+1) + " 0 obj\n" + o + "\nendobj\n"; });
+  const xref = out.length;
+  out += "xref\n0 " + (objs.length+1) + "\n0000000000 65535 f \n";
+  pos.forEach(p => { out += String(p).padStart(10, "0") + " 00000 n \n"; });
+  out += "trailer\n<< /Size " + (objs.length+1) + " /Root 1 0 R >>\nstartxref\n" + xref + "\n%%EOF";
+  const bytes = new Uint8Array(out.length);
+  for(let i = 0; i < out.length; i++) bytes[i] = out.charCodeAt(i) & 255;
+  return new Blob([bytes], {type: "application/pdf"});
+}
+
+function guardarPdf(){
+  alCalcular();
+  if(!ultimoResultado || !$("desglose").innerHTML) return;
+  const hoy = new Date();
+  const fecha = hoy.toLocaleDateString("es-ES", {day:"2-digit", month:"2-digit", year:"numeric"});
+  const blob = crearPdf("Calculadora de embalaje - KIMAK", "Fecha: " + fecha, ultimoResultado);
+  const ref = $("referencia").value.trim().replace(/[^\w\-]+/g, "_").slice(0, 40);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "embalaje_" + hoy.toISOString().slice(0,10) + (ref ? "_" + ref : "") + ".pdf";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 
 /* ---------- desplegables y textos que dependen de los ajustes ---------- */
@@ -604,6 +677,7 @@ $("sello").textContent = new Date().toLocaleDateString("es-ES",
 
 $("btnCalcular").addEventListener("click", alCalcular);
 $("btnImprimir").addEventListener("click", () => window.print());
+$("btnPdf").addEventListener("click", guardarPdf);
 $("btnAjustes").addEventListener("click", () => $("panelAjustes").showModal());
 $("btnCerrarAjustes").addEventListener("click", () => $("panelAjustes").close());
 $("panelAjustes").addEventListener("close", () => $("btnAjustes").focus());

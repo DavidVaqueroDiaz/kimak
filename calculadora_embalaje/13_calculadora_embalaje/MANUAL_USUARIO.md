@@ -37,7 +37,7 @@ coste por caja y total.
 
 ### 4. Imprime o guarda en PDF
 
-El botón "Imprimir o guardar en PDF" abre la impresión del navegador. Ahí puedes
+El botón "Imprimir y Guardar PDF" abre la impresión del navegador. Ahí puedes
 elegir la impresora o "Guardar como PDF". En el papel salen solo los datos y el
 resultado, sin botones.
 
