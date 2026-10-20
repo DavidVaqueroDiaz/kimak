@@ -113,6 +113,72 @@
     main{padding:0}
     @page{size:A4 portrait; margin:16mm}
   }
+
+  /* ===== v1.1 · aspecto y móvil ===== */
+  body{-webkit-text-size-adjust:100%}
+  header{box-shadow:0 2px 6px rgba(0,0,0,.25)}
+  main{padding-top:24px}
+  .panel{border-radius:12px; padding:22px 24px; box-shadow:0 1px 3px rgba(20,40,60,.06), 0 6px 18px rgba(20,40,60,.05)}
+  .panel h2{display:flex; align-items:center; gap:8px; font-size:13px; letter-spacing:.9px}
+  .panel h2::before{content:""; width:4px; height:16px; border-radius:2px; background:var(--acento)}
+  input[type=number], input[type=password], input[type=text], select, textarea{
+    min-height:44px; border-radius:8px; font-size:16px;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  select{appearance:none; -webkit-appearance:none; padding-right:34px;
+    background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%235b6670' stroke-width='1.8'/%3E%3C/svg%3E") no-repeat right 12px center}
+  input:focus, select:focus, textarea:focus{outline:none; border-color:var(--acento); box-shadow:0 0 0 3px rgba(20,80,107,.18)}
+  label{font-weight:600; font-size:12.5px}
+  button{min-height:44px; border-radius:8px; font-weight:600; transition:filter .15s, transform .05s}
+  button:active{transform:translateY(1px)}
+  button.grande{width:100%; font-size:17px; min-height:50px}
+  .botones.exportar{margin-top:18px}
+  .botones.exportar button{flex:1 1 0; white-space:nowrap}
+  .destacado{background:linear-gradient(135deg,#14506b,#1f7a9e); border:0; color:#fff; border-radius:12px; padding:18px 20px}
+  .destacado .etq{color:rgba(255,255,255,.85); font-size:14px}
+  .destacado .val{font-size:32px}
+  .titulo-bloque{font-size:12px; text-transform:uppercase; letter-spacing:.8px; color:var(--suave); margin:4px 0 4px}
+  table.generales td{padding:10px 6px}
+  table.generales td.n{font-weight:600}
+  details{margin-top:16px; border:1px solid var(--linea); border-radius:10px; background:#fafbfc}
+  details summary{cursor:pointer; list-style:none; padding:13px 16px; font-weight:600; color:var(--acento);
+    display:flex; justify-content:space-between; align-items:center; min-height:44px}
+  details summary::-webkit-details-marker{display:none}
+  details summary::after{content:""; width:9px; height:9px; border-right:2px solid currentColor; border-bottom:2px solid currentColor;
+    transform:rotate(45deg); transition:transform .2s; margin-right:4px}
+  details[open] summary::after{transform:rotate(-135deg)}
+  details table{margin:0 0 6px; padding:0 10px; width:calc(100% - 20px); margin-left:10px}
+  details tr:last-child td{border-bottom:none}
+  #panelAjustes{overflow:auto}
+  @media (max-width:880px){ main{padding:16px 12px 40px} }
+  @media (max-width:600px){
+    .panel{padding:18px 16px}
+    .destacado{flex-direction:column; align-items:flex-start; gap:2px}
+    .destacado .val{font-size:34px; white-space:nowrap}
+    header{flex-wrap:nowrap}
+    header h1{font-size:15px}
+    .acciones-cabecera{flex:none}
+    td.n{white-space:nowrap}
+    td, th{padding-left:2px; padding-right:2px}
+    .tres{gap:8px}
+    #panelAjustes{width:calc(100% - 16px); max-height:calc(100dvh - 16px)}
+    #panelAjustes .dos{grid-template-columns:1fr}
+    #panelAjustes .cuerpo{padding:16px}
+    .tabla-precios th, .tabla-precios td{padding:5px 3px}
+    .tabla-precios input{padding:6px 4px; min-height:40px}
+    .botones button{flex:1 1 100%}
+    .botones.exportar button{flex:1 1 30%; padding:10px 6px; font-size:14px}
+    td, th{font-size:14px}
+  }
+  @media print{
+    header{box-shadow:none}
+    .panel{box-shadow:none}
+    .destacado{background:none !important; color:#000 !important; border:1px solid #000}
+    .destacado .etq{color:#000}
+    details{border:none; background:none}
+    details summary{padding:10px 0 4px; color:#000; font-size:12px; text-transform:uppercase; letter-spacing:.8px}
+    details summary::after{display:none}
+  }
 </style>
 </head>
 <body>
@@ -122,7 +188,6 @@
     <img src="assets/kimak-logo-blanco.png" alt="KIMAK" width="1280" height="330">
     <div class="titulo-app">
       <h1>Calculadora de embalaje</h1>
-      <div class="sub">Coste de caja de madera (MDF o aglomerado) a partir de las medidas del bulto</div>
     </div>
   </div>
   <div class="acciones-cabecera noimprimir">
@@ -134,12 +199,6 @@
 </header>
 
 <main>
-
-  <div class="aviso noimprimir" id="avisoCoeficientes">
-    <strong>Valores cargados del Excel de embalajes (rev. oct. 2026).</strong>
-    Si cambian precios o tiempos, se modifican en el botón de ajustes de la
-    barra superior.
-  </div>
 
   <div class="rejilla">
 
@@ -187,9 +246,7 @@
       </div>
 
       <div class="botones noimprimir">
-        <button type="button" id="btnCalcular">Calcular</button>
-        <button type="button" class="secundario" id="btnImprimir">Imprimir</button>
-        <button type="button" class="secundario" id="btnPdf">Guardar PDF</button>
+        <button type="button" id="btnCalcular" class="grande">Calcular</button>
       </div>
       <p class="error" id="error" hidden></p>
     </section>
@@ -202,13 +259,27 @@
         <span class="val" id="totalGrande">-</span>
       </div>
 
-      <table>
-        <tbody id="desglose"></tbody>
+      <h3 class="titulo-bloque">Datos generales</h3>
+      <table class="generales">
+        <tbody id="generales"></tbody>
       </table>
 
+      <details id="detalle">
+        <summary>Ver desglose de costes</summary>
+        <table>
+          <tbody id="desglose"></tbody>
+        </table>
+      </details>
+
+      <div class="botones noimprimir exportar">
+        <button type="button" class="secundario" id="btnImprimir">Imprimir</button>
+        <button type="button" class="secundario" id="btnPdf">Guardar PDF</button>
+        <button type="button" class="secundario" id="btnCsv">Descargar CSV</button>
+      </div>
+
       <p class="nota">
-        Cálculo orientativo para presupuesto, con el mismo método que el Excel de
-        embalajes. El peso es una estimación a partir de la densidad del tablero.
+        Cálculo orientativo para presupuesto. El peso es una estimación a partir
+        de la densidad del tablero.
       </p>
     </section>
 
@@ -485,45 +556,43 @@ function calcular(entrada){
 }
 
 /* ---------- pantalla ---------- */
-let ultimoResultado = null;   // filas [etiqueta, valor] del último cálculo, para el PDF
+let ultimoResultado = null;   // {generales, desglose, total} del último cálculo, para PDF y CSV
 function pintar(r){
   const ref = $("referencia").value.trim();
-  const filas = [];
-  const datosPdf = [];
-  const fila = (etq, val, n=true) => {
-    datosPdf.push([etq, val]);
-    return `<tr><td>${etq}</td><td class="${n?'n':''}">${val}</td></tr>`;
-  };
+  const gen = [], det = [];
   const mat = `${NOMBRE_MATERIAL[r.material]} ${num(r.espesor,0)} mm`;
 
-  if(ref) filas.push(fila("Referencia", ref, false));
-  filas.push(fila("Tablero", mat, false));
-  filas.push(fila("Medidas de la caja", `${num(r.A,0)} x ${num(r.F,0)} x ${num(r.H,0)} mm`));
-  filas.push(fila("Volumen (m³)", num(r.volumen,3) + " m³"));
-  filas.push(fila("Tablero total", "<strong>" + num(r.m2) + " m²</strong>"));
-  filas.push(fila("Peso estimado del tablero", num(r.peso,1) + " kg"));
-  filas.push(fila(`Precio del m² (${num(r.precioBase)} +${num(ajustes.merma,0)} % merma +${num(ajustes.recargoM2)} €)`, eur(r.precioM2)));
-  r.piezas.forEach(p => filas.push(fila(`${p.nombre}: ${num(p.m2)} m²`, eur(p.coste))));
-  filas.push(fila("Material", eur(r.costeMaterial)));
-  filas.push(fila(`Mano de obra fija (${num(ajustes.minFijos,0)} min)`, eur(r.costeFijo)));
-  filas.push(fila(`Mano de obra variable (${num(ajustes.horasPorM3,2)} h/m³)`, eur(r.costeVariable)));
-  filas.push(fila(`Tacos inferiores para carretilla (${num(r.nTacos,0)} ud)`, eur(r.costeTacos)));
-  filas.push(fila("Consumibles", eur(r.costeConsumibles)));
-  if(ajustes.generales > 0) filas.push(fila(`Gastos generales (${num(ajustes.generales,1)} %)`, eur(r.costeGenerales)));
-  filas.push(fila("<strong>Coste por caja</strong>", "<strong>" + eur(r.totalCaja) + "</strong>"));
+  if(ref) gen.push(["Referencia", ref]);
+  gen.push(["Tablero", mat]);
+  gen.push(["Medidas de la caja", `${num(r.A,0)} x ${num(r.F,0)} x ${num(r.H,0)} mm`]);
+  gen.push(["Volumen (m³)", num(r.volumen,3) + " m³"]);
+  gen.push(["Tablero total", num(r.m2) + " m²"]);
+  gen.push(["Peso estimado del tablero", num(r.peso,1) + " kg"]);
 
+  det.push([`Precio del m² (${num(r.precioBase)} +${num(ajustes.merma,0)} % merma +${num(ajustes.recargoM2)} €)`, eur(r.precioM2)]);
+  r.piezas.forEach(p => det.push([`${p.nombre}: ${num(p.m2)} m²`, eur(p.coste)]));
+  det.push(["Material", eur(r.costeMaterial)]);
+  det.push([`Mano de obra fija (${num(ajustes.minFijos,0)} min)`, eur(r.costeFijo)]);
+  det.push([`Mano de obra variable (${num(ajustes.horasPorM3,2)} h/m³)`, eur(r.costeVariable)]);
+  det.push([`Tacos inferiores para carretilla (${num(r.nTacos,0)} ud)`, eur(r.costeTacos)]);
+  det.push(["Consumibles", eur(r.costeConsumibles)]);
+  if(ajustes.generales > 0) det.push([`Gastos generales (${num(ajustes.generales,1)} %)`, eur(r.costeGenerales)]);
+  det.push(["Coste por caja", eur(r.totalCaja)]);
   if(r.cantidad > 1){
-    filas.push(fila("Número de bultos", num(r.cantidad,0)));
-    filas.push(fila("Tablero total", num(r.m2Total) + " m²"));
-    filas.push(fila("Peso total estimado", num(r.pesoTotal,1) + " kg"));
-    filas.push(fila("Volumen total", num(r.volumenTotal,3) + " m³"));
+    det.push(["Número de bultos", num(r.cantidad,0)]);
+    det.push(["Tablero total (todos los bultos)", num(r.m2Total) + " m²"]);
+    det.push(["Peso total estimado", num(r.pesoTotal,1) + " kg"]);
+    det.push(["Volumen total", num(r.volumenTotal,3) + " m³"]);
   }
-  filas.push(`<tr class="total"><td>Total</td><td class="n">${eur(r.total)}</td></tr>`);
-  datosPdf.push(["Total", eur(r.total)]);
-  ultimoResultado = datosPdf;
 
-  $("desglose").innerHTML = filas.join("");
+  const html = (f, negrita=[]) => f.map(([e, v]) =>
+    negrita.includes(e) ? `<tr><td><strong>${e}</strong></td><td class="n"><strong>${v}</strong></td></tr>`
+                        : `<tr><td>${e}</td><td class="n">${v}</td></tr>`).join("");
+  $("generales").innerHTML = html(gen);
+  $("desglose").innerHTML = html(det, ["Coste por caja", "Material"]) +
+    `<tr class="total"><td>Total</td><td class="n">${eur(r.total)}</td></tr>`;
   $("totalGrande").textContent = eur(r.total);
+  ultimoResultado = {generales: gen, desglose: det, total: eur(r.total)};
 }
 
 function alCalcular(){
@@ -537,8 +606,10 @@ function alCalcular(){
      !Number.isFinite(cant) || cant < 1){
     err.textContent = "Faltan datos o hay un valor que no es válido. Las tres medidas y el número de bultos tienen que ser mayores que cero.";
     err.hidden = false;
+    $("generales").innerHTML = "";
     $("desglose").innerHTML = "";
     $("totalGrande").textContent = "-";
+    ultimoResultado = null;
     return;
   }
   err.hidden = true;
@@ -554,7 +625,7 @@ function alCalcular(){
    Genera un PDF sencillo (una página A4, Helvetica) sin librerías y sin red.  */
 function textoPlano(h){ return String(h).replace(/<[^>]*>/g, ""); }
 
-function crearPdf(titulo, subtitulo, filas){
+function crearPdf(titulo, subtitulo, res){
   // Los caracteres se mandan como un byte (WinAnsi): el euro es 0x80.
   const aByte = (t) => textoPlano(t).replace(/€/g, "\x80").replace(/[^\x00-\xff]/g, "?")
     .replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
@@ -566,16 +637,24 @@ function crearPdf(titulo, subtitulo, filas){
   let y = 790, c = "BT /F2 16 Tf 50 " + y + " Td (" + aByte(titulo) + ") Tj ET\n";
   y -= 18;
   c += "BT /F1 10 Tf 50 " + y + " Td (" + aByte(subtitulo) + ") Tj ET\n";
-  y -= 14;
-  filas.forEach(([etq, val], i) => {
-    y -= 17;
-    const esTotal = i === filas.length - 1;
-    const f = esTotal ? "/F2 11" : "/F1 10";
-    if(esTotal){ c += "0.5 w 50 " + (y + 14) + " m 545 " + (y + 14) + " l S\n"; }
-    c += "BT " + f + " Tf 50 " + y + " Td (" + aByte(etq) + ") Tj ET\n";
-    const x = 545 - ancho(val, esTotal ? 11 : 10);
-    c += "BT " + f + " Tf " + x.toFixed(1) + " " + y + " Td (" + aByte(val) + ") Tj ET\n";
-  });
+  const bloque = (nombre, filas) => {
+    y -= 30;
+    c += "BT /F2 11 Tf 50 " + y + " Td (" + aByte(nombre.toUpperCase()) + ") Tj ET\n";
+    c += "0.5 w 50 " + (y - 4) + " m 545 " + (y - 4) + " l S\n";
+    y -= 6;
+    filas.forEach(([etq, val]) => {
+      y -= 16;
+      c += "BT /F1 10 Tf 50 " + y + " Td (" + aByte(etq) + ") Tj ET\n";
+      const x = 545 - ancho(val, 10);
+      c += "BT /F1 10 Tf " + x.toFixed(1) + " " + y + " Td (" + aByte(val) + ") Tj ET\n";
+    });
+  };
+  bloque("Datos generales", res.generales);
+  bloque("Desglose de costes", res.desglose);
+  y -= 26;
+  c += "1 w 50 " + (y + 16) + " m 545 " + (y + 16) + " l S\n";
+  c += "BT /F2 13 Tf 50 " + y + " Td (TOTAL) Tj ET\n";
+  c += "BT /F2 13 Tf " + (545 - ancho(res.total, 13)).toFixed(1) + " " + y + " Td (" + aByte(res.total) + ") Tj ET\n";
   y -= 30;
   c += "BT /F1 8 Tf 50 " + y + " Td (" + aByte("Calculo orientativo para presupuesto. Peso estimado a partir de la densidad del tablero.") + ") Tj ET\n";
 
@@ -599,20 +678,43 @@ function crearPdf(titulo, subtitulo, filas){
   return new Blob([bytes], {type: "application/pdf"});
 }
 
-function guardarPdf(){
-  alCalcular();
-  if(!ultimoResultado || !$("desglose").innerHTML) return;
+function descargar(blob, extension){
   const hoy = new Date();
-  const fecha = hoy.toLocaleDateString("es-ES", {day:"2-digit", month:"2-digit", year:"numeric"});
-  const blob = crearPdf("Calculadora de embalaje - KIMAK", "Fecha: " + fecha, ultimoResultado);
   const ref = $("referencia").value.trim().replace(/[^\w\-]+/g, "_").slice(0, 40);
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "embalaje_" + hoy.toISOString().slice(0,10) + (ref ? "_" + ref : "") + ".pdf";
+  a.download = "embalaje_" + hoy.toISOString().slice(0,10) + (ref ? "_" + ref : "") + "." + extension;
   document.body.appendChild(a);
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+const fechaHoy = () => new Date().toLocaleDateString("es-ES", {day:"2-digit", month:"2-digit", year:"numeric"});
+
+function guardarPdf(){
+  alCalcular();
+  if(!ultimoResultado) return;
+  descargar(crearPdf("Calculadora de embalaje - KIMAK", "Fecha: " + fechaHoy(), ultimoResultado), "pdf");
+}
+
+/* ---------- CSV ----------
+   Separador ";" y codificación UTF-8 con marca BOM: así Excel en español lo abre
+   directamente con las columnas y los acentos bien. Dos bloques: datos
+   generales y desglose de costes.                                            */
+function guardarCsv(){
+  alCalcular();
+  if(!ultimoResultado) return;
+  const cel = (t) => {
+    t = textoPlano(t);
+    return /[;"\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+  };
+  const lineas = [["Calculadora de embalaje KIMAK"], ["Fecha", fechaHoy()], [],
+    ["DATOS GENERALES"], ["Concepto", "Valor"], ...ultimoResultado.generales, [],
+    ["DESGLOSE DE COSTES"], ["Concepto", "Valor"], ...ultimoResultado.desglose,
+    ["Total", ultimoResultado.total]];
+  const texto = "﻿" + lineas.map(l => l.map(cel).join(";")).join("\r\n") + "\r\n";
+  descargar(new Blob([texto], {type: "text/csv;charset=utf-8"}), "csv");
 }
 
 /* ---------- desplegables y textos que dependen de los ajustes ---------- */
@@ -663,7 +765,6 @@ function recogerAjustesDelFormulario(){
 }
 
 function actualizarAvisoCoeficientes(){
-  $("avisoCoeficientes").hidden = ajustesPersonalizados;
 }
 
 /* ---------- arranque ---------- */
@@ -678,6 +779,7 @@ $("sello").textContent = new Date().toLocaleDateString("es-ES",
 $("btnCalcular").addEventListener("click", alCalcular);
 $("btnImprimir").addEventListener("click", () => window.print());
 $("btnPdf").addEventListener("click", guardarPdf);
+$("btnCsv").addEventListener("click", guardarCsv);
 $("btnAjustes").addEventListener("click", () => $("panelAjustes").showModal());
 $("btnCerrarAjustes").addEventListener("click", () => $("panelAjustes").close());
 $("panelAjustes").addEventListener("close", () => $("btnAjustes").focus());
@@ -686,6 +788,12 @@ $("panelAjustes").addEventListener("close", () => $("btnAjustes").focus());
   $(id).addEventListener("keydown", (ev) => { if(ev.key === "Enter") alCalcular(); });
 });
 ["material","espesorSel"].forEach(id => $(id).addEventListener("change", alCalcular));
+["ancho","fondo","alto","cantidad"].forEach(id => $(id).addEventListener("input", alCalcular));
+
+/* Al imprimir, el desglose tiene que salir aunque esté plegado en pantalla. */
+let detalleAbiertoAntes = false;
+window.addEventListener("beforeprint", () => { detalleAbiertoAntes = $("detalle").open; $("detalle").open = true; });
+window.addEventListener("afterprint", () => { $("detalle").open = detalleAbiertoAntes; });
 
 $("btnEntrar").addEventListener("click", () => {
   if($("clave").value === CLAVE_RESPONSABLE){
