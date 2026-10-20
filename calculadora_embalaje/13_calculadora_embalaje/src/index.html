@@ -280,7 +280,7 @@
           </div>
         </div>
 
-        <h3 class="sub-ajustes">Tacos y otros</h3>
+        <h3 class="sub-ajustes">Tacos (elevan la caja del suelo para la carretilla) y otros</h3>
         <div class="dos">
           <div class="campo">
             <label for="precioTaco">Precio por taco inferior (€)</label>
@@ -502,7 +502,7 @@ function pintar(r){
   filas.push(fila("Material", eur(r.costeMaterial)));
   filas.push(fila(`Mano de obra fija (${num(ajustes.minFijos,0)} min)`, eur(r.costeFijo)));
   filas.push(fila(`Mano de obra variable (${num(ajustes.horasPorM3,2)} h/m³)`, eur(r.costeVariable)));
-  filas.push(fila(`Tacos inferiores (${num(r.nTacos,0)} ud)`, eur(r.costeTacos)));
+  filas.push(fila(`Tacos inferiores para carretilla (${num(r.nTacos,0)} ud)`, eur(r.costeTacos)));
   filas.push(fila("Consumibles", eur(r.costeConsumibles)));
   if(ajustes.generales > 0) filas.push(fila(`Gastos generales (${num(ajustes.generales,1)} %)`, eur(r.costeGenerales)));
   filas.push(fila("<strong>Coste por caja</strong>", "<strong>" + eur(r.totalCaja) + "</strong>"));
