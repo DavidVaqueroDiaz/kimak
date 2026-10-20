@@ -1,0 +1,66 @@
+# Despliegue de una miniapp web de KIMAK.
+#
+# PROPUESTA PARA SISTEMAS. No se puede dar por buena sin que Guillermo confirme:
+#   - el nombre del "runner" disponible,
+#   - a qué contenedor o servidor despliega cada rama,
+#   - si hay registro de imágenes interno,
+#   - qué validaciones automáticas quiere añadir al control de calidad.
+#
+# Idea: la rama lab despliega en laboratorio de forma automática. La rama
+# produccion NO despliega sola: necesita que alguien le dé al botón, para que el
+# pase a producción siga siendo una decisión de personas.
+
+stages:
+  - comprobar
+  - construir
+  - desplegar
+
+# Comprobaciones mínimas antes de construir nada.
+comprobar_documentacion:
+  stage: comprobar
+  script:
+    - test -f README.md
+    - test -f FICHA_APP.md
+    - test -f MANUAL_USUARIO.md
+    - test -f DOCUMENTACION_TECNICA.md
+    - test -f CONTINUIDAD.md
+    - test -f CHANGELOG.md
+    - test -f PRUEBAS.md
+    - echo "Documentación obligatoria presente."
+
+# Comprueba que la app no llama a internet, que es la regla que puso Sistemas.
+comprobar_sin_internet:
+  stage: comprobar
+  script:
+    - >
+      if grep -rniE "https?://(cdn|unpkg|ajax|fonts|code)\." src/ ; then
+        echo "ERROR: la app llama a recursos externos. Hay que incrustarlos."; exit 1;
+      fi
+    - echo "Sin llamadas a recursos externos."
+
+construir_imagen:
+  stage: construir
+  script:
+    - docker build -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" .
+  rules:
+    - if: $CI_COMMIT_BRANCH == "lab"
+    - if: $CI_COMMIT_BRANCH == "produccion"
+
+desplegar_laboratorio:
+  stage: desplegar
+  environment:
+    name: laboratorio
+  script:
+    - echo "Despliegue en el contenedor de laboratorio. Lo define Sistemas."
+  rules:
+    - if: $CI_COMMIT_BRANCH == "lab"
+
+desplegar_produccion:
+  stage: desplegar
+  environment:
+    name: produccion
+  when: manual        # alguien tiene que pulsar el botón a propósito
+  script:
+    - echo "Despliegue en producción. Lo define Sistemas."
+  rules:
+    - if: $CI_COMMIT_BRANCH == "produccion"

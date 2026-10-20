@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculadora de embalaje | KIMAK</title>
+<!--
+  Calculadora de embalaje de KIMAK.
+
+  Aplicación de una sola página. Toda la estructura, los estilos y los cálculos
+  están dentro de este archivo: no carga librerías, no llama a internet y no
+  guarda nada en ningún servidor. Los ajustes del responsable se guardan solo en
+  el navegador de quien los cambia.
+
+  Las fórmulas están en la función calcular(). Los coeficientes de ejemplo están
+  en AJUSTES_POR_DEFECTO. Hay que validarlos con Presupuestos antes de usar la
+  app para presupuestar de verdad.
+
+  Documentación: ver README.md y DOCUMENTACION_TECNICA.md del repositorio.
+-->
+<style>
+  :root{
+    --tinta:#1b1f24; --suave:#5b6670; --linea:#d8dde2; --fondo:#f4f6f8;
+    --panel:#ffffff; --acento:#14506b; --acento-claro:#e8f1f5;
+    --aviso:#8a5a00; --aviso-fondo:#fdf6e3; --ok:#1c6b43;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--fondo); color:var(--tinta);
+    font:15px/1.5 "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  }
+  header{
+    background:#000; color:#fff; padding:16px 24px;
+    display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between;
+  }
+  .marca{display:flex; align-items:center; gap:20px; min-width:0}
+  .marca img{display:block; width:128px; height:auto; flex:none}
+  .titulo-app{border-left:1px solid #555; padding-left:20px}
+  .acciones-cabecera{display:flex; align-items:center; gap:16px}
+  .boton-ajustes{display:grid; place-items:center; width:42px; height:42px; padding:0;
+    background:transparent; border:1px solid #777; border-radius:6px; color:#fff}
+  .boton-ajustes:hover{background:#252525}
+  .boton-ajustes svg{width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.8}
+  header h1{font-size:19px; margin:0; font-weight:600; letter-spacing:.2px}
+  header .sub{font-size:13px; opacity:.85}
+  main{max-width:1060px; margin:0 auto; padding:22px 16px 60px}
+  .aviso{
+    background:var(--aviso-fondo); border:1px solid #e8d9a8; color:var(--aviso);
+    padding:12px 14px; border-radius:6px; font-size:14px; margin-bottom:20px;
+  }
+  .rejilla{display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start}
+  @media (max-width:880px){ .rejilla{grid-template-columns:1fr} }
+  .panel{background:var(--panel); border:1px solid var(--linea); border-radius:8px; padding:18px 20px}
+  .panel h2{font-size:15px; margin:0 0 14px; text-transform:uppercase; letter-spacing:.6px; color:var(--suave)}
+  label{display:block; font-size:13px; color:var(--suave); margin:0 0 4px}
+  .campo{margin-bottom:14px}
+  input[type=number], input[type=password], select, textarea{
+    width:100%; padding:9px 10px; border:1px solid var(--linea); border-radius:5px;
+    font:inherit; background:#fff; color:var(--tinta);
+  }
+  input:focus, textarea:focus{outline:2px solid var(--acento); outline-offset:1px}
+  .tres{display:grid; grid-template-columns:repeat(3,1fr); gap:12px}
+  .dos{display:grid; grid-template-columns:repeat(2,1fr); gap:12px}
+  button{
+    font:inherit; padding:10px 16px; border-radius:5px; border:1px solid var(--acento);
+    background:var(--acento); color:#fff; cursor:pointer;
+  }
+  button.secundario{background:#fff; color:var(--acento)}
+  button:hover{filter:brightness(1.08)}
+  .botones{display:flex; flex-wrap:wrap; gap:10px; margin-top:6px}
+  table{width:100%; border-collapse:collapse; font-size:14px}
+  th, td{text-align:left; padding:7px 6px; border-bottom:1px solid var(--linea)}
+  td.n, th.n{text-align:right; font-variant-numeric:tabular-nums}
+  tr.total td{font-weight:700; border-top:2px solid var(--tinta); border-bottom:none; font-size:15px}
+  .destacado{
+    background:var(--acento-claro); border:1px solid #c2dae4; border-radius:6px;
+    padding:14px 16px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:baseline; gap:10px;
+  }
+  .destacado .etq{font-size:13px; color:var(--suave)}
+  .destacado .val{font-size:26px; font-weight:700; font-variant-numeric:tabular-nums}
+  .error{color:#9b1c1c; font-size:14px; margin:10px 0 0}
+  .nota{font-size:12.5px; color:var(--suave); margin-top:10px}
+  #panelAjustes{width:min(720px, calc(100% - 24px)); max-height:calc(100vh - 32px);
+    padding:0; border:1px solid var(--linea); border-radius:8px; background:var(--panel); color:var(--tinta)}
+  #panelAjustes::backdrop{background:rgba(0,0,0,.58)}
+  .cabecera-ajustes{display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:16px 20px; border-bottom:1px solid var(--linea)}
+  .cabecera-ajustes h2{font-size:19px; margin:0}
+  .cerrar-ajustes{background:#fff; color:var(--tinta); border:1px solid var(--linea);
+    padding:4px 12px; font-size:25px; line-height:1.2}
+  #panelAjustes .cuerpo{padding:20px}
+  @media (max-width:600px){
+    header{padding:14px 16px}
+    .marca{gap:12px}
+    .marca img{width:88px}
+    .titulo-app{padding-left:12px}
+    header h1{font-size:16px}
+    header .sub, #sello{display:none}
+  }
+  footer{max-width:1060px; margin:0 auto; padding:0 16px 40px; color:var(--suave); font-size:12.5px}
+  .sub-ajustes{font-size:13px; text-transform:uppercase; letter-spacing:.5px; color:var(--suave); margin:18px 0 10px}
+  .sub-ajustes:first-child{margin-top:0}
+  .tabla-precios input{padding:6px 8px; text-align:right}
+  .tabla-precios td:first-child input{text-align:left}
+  .guardado{color:var(--ok); font-size:13px; margin-left:8px}
+  @media print{
+    header{background:#fff; color:#000; border-bottom:2px solid #000}
+    .titulo-app{border:0; padding:0}
+    .marca img, .noimprimir, dialog, .aviso{display:none !important}
+    body{background:#fff}
+    .panel{border:none; padding:0}
+    .rejilla{grid-template-columns:1fr; gap:10px}
+    main{padding:0}
+    @page{size:A4 portrait; margin:16mm}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="marca">
+    <img src="assets/kimak-logo-blanco.png" alt="KIMAK" width="1280" height="330">
+    <div class="titulo-app">
+      <h1>Calculadora de embalaje</h1>
+      <div class="sub">Coste de caja de madera (MDF o aglomerado) a partir de las medidas del bulto</div>
+    </div>
+  </div>
+  <div class="acciones-cabecera noimprimir">
+    <div class="sub" id="sello"></div>
+    <button type="button" id="btnAjustes" class="boton-ajustes" aria-label="Abrir ajustes" aria-haspopup="dialog" aria-controls="panelAjustes" title="Ajustes">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6 7 7m10 10 1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"/><circle cx="12" cy="12" r="4"/></svg>
+    </button>
+  </div>
+</header>
+
+<main>
+
+  <div class="aviso noimprimir" id="avisoCoeficientes">
+    <strong>Valores cargados del Excel de embalajes (rev. oct. 2026).</strong>
+    Si cambian precios o tiempos, se modifican en el botón de ajustes de la
+    barra superior.
+  </div>
+
+  <div class="rejilla">
+
+    <section class="panel">
+      <h2>Datos del bulto</h2>
+
+      <p class="nota" style="margin-top:0" id="notaMedidas"></p>
+
+      <div class="tres">
+        <div class="campo">
+          <label for="ancho">Ancho (mm)</label>
+          <input type="number" id="ancho" min="1" step="1" value="2000">
+        </div>
+        <div class="campo">
+          <label for="fondo">Fondo (mm)</label>
+          <input type="number" id="fondo" min="1" step="1" value="1200">
+        </div>
+        <div class="campo">
+          <label for="alto">Alto (mm)</label>
+          <input type="number" id="alto" min="1" step="1" value="500">
+        </div>
+      </div>
+
+      <div class="dos">
+        <div class="campo">
+          <label for="material">Material</label>
+          <select id="material"></select>
+        </div>
+        <div class="campo">
+          <label for="espesorSel">Espesor (mm)</label>
+          <select id="espesorSel"></select>
+        </div>
+      </div>
+
+      <div class="dos">
+        <div class="campo">
+          <label for="cantidad">Número de bultos iguales</label>
+          <input type="number" id="cantidad" min="1" step="1" value="1">
+        </div>
+        <div class="campo">
+          <label for="referencia">Referencia (opcional)</label>
+          <input type="text" id="referencia" placeholder="pedido, obra o mueble"
+                 style="width:100%;padding:9px 10px;border:1px solid var(--linea);border-radius:5px;font:inherit">
+        </div>
+      </div>
+
+      <div class="botones noimprimir">
+        <button type="button" id="btnCalcular">Calcular</button>
+        <button type="button" class="secundario" id="btnImprimir">Imprimir o guardar en PDF</button>
+      </div>
+      <p class="error" id="error" hidden></p>
+    </section>
+
+    <section class="panel" id="resultado">
+      <h2>Resultado</h2>
+
+      <div class="destacado">
+        <span class="etq">Coste total del embalaje</span>
+        <span class="val" id="totalGrande">-</span>
+      </div>
+
+      <table>
+        <tbody id="desglose"></tbody>
+      </table>
+
+      <p class="nota">
+        Cálculo orientativo para presupuesto, con el mismo método que el Excel de
+        embalajes. El peso es una estimación a partir de la densidad del tablero.
+      </p>
+    </section>
+
+  </div>
+
+  <dialog id="panelAjustes" aria-labelledby="tituloAjustes">
+    <div class="cabecera-ajustes">
+      <h2 id="tituloAjustes">Ajustes del responsable</h2>
+      <button type="button" id="btnCerrarAjustes" class="cerrar-ajustes" aria-label="Cerrar ajustes" title="Cerrar">×</button>
+    </div>
+    <div class="cuerpo">
+
+      <div id="bloqueo">
+        <p class="nota" style="margin-top:0">
+          Estos valores afectan a todos los cálculos. Para cambiarlos hace falta
+          la clave de responsable.
+        </p>
+        <div class="dos" style="max-width:420px">
+          <div class="campo">
+            <label for="clave">Clave de responsable</label>
+            <input type="password" id="clave" autocomplete="off">
+          </div>
+          <div class="campo" style="align-self:end">
+            <button type="button" id="btnEntrar">Entrar</button>
+          </div>
+        </div>
+        <p class="error" id="errorClave" hidden>Clave incorrecta.</p>
+      </div>
+
+      <div id="formAjustes" hidden>
+        <h3 class="sub-ajustes">Precio del tablero (€/m², sin merma)</h3>
+        <table class="tabla-precios">
+          <thead><tr><th>Espesor (mm)</th><th class="n">MDF</th><th class="n">Aglomerado</th></tr></thead>
+          <tbody id="tablaPrecios"></tbody>
+        </table>
+
+        <h3 class="sub-ajustes">Material</h3>
+        <div class="dos">
+          <div class="campo">
+            <label for="merma">Merma y recorte (%)</label>
+            <input type="number" id="merma" min="0" step="1">
+          </div>
+          <div class="campo">
+            <label for="recargoM2">Recargo por m² de tablero (€)</label>
+            <input type="number" id="recargoM2" min="0" step="0.01">
+          </div>
+          <div class="campo">
+            <label for="densMDF">Densidad MDF (kg/m³)</label>
+            <input type="number" id="densMDF" min="0" step="10">
+          </div>
+          <div class="campo">
+            <label for="densAglo">Densidad aglomerado (kg/m³)</label>
+            <input type="number" id="densAglo" min="0" step="10">
+          </div>
+        </div>
+
+        <h3 class="sub-ajustes">Mano de obra</h3>
+        <div class="dos">
+          <div class="campo">
+            <label for="precioHora">Coste de mano de obra (€/hora)</label>
+            <input type="number" id="precioHora" min="0" step="0.01">
+          </div>
+          <div class="campo">
+            <label for="minFijos">Minutos fijos por caja</label>
+            <input type="number" id="minFijos" min="0" step="1">
+          </div>
+          <div class="campo">
+            <label for="horasPorM3">Horas por m³ de caja</label>
+            <input type="number" id="horasPorM3" min="0" step="0.01">
+          </div>
+        </div>
+
+        <h3 class="sub-ajustes">Tacos y otros</h3>
+        <div class="dos">
+          <div class="campo">
+            <label for="precioTaco">Precio por taco inferior (€)</label>
+            <input type="number" id="precioTaco" min="0" step="0.01">
+          </div>
+          <div class="campo">
+            <label for="tacosPorTramo">Tacos por cada tramo</label>
+            <input type="number" id="tacosPorTramo" min="0" step="1">
+          </div>
+          <div class="campo">
+            <label for="tramoTacos">Tramo de ancho por tacos (mm)</label>
+            <input type="number" id="tramoTacos" min="1" step="10">
+          </div>
+          <div class="campo">
+            <label for="consumibles">Consumibles por caja (€)</label>
+            <input type="number" id="consumibles" min="0" step="0.01">
+          </div>
+          <div class="campo">
+            <label for="generales">Gastos generales (% sobre el total)</label>
+            <input type="number" id="generales" min="0" step="0.1">
+          </div>
+          <div class="campo">
+            <label for="tipoMedidas">Las medidas que se introducen son</label>
+            <select id="tipoMedidas">
+              <option value="tablero">Las del tablero (como el Excel)</option>
+              <option value="interior">Interiores (se suman 2 espesores)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="botones">
+          <button type="button" id="btnGuardar">Guardar ajustes</button>
+          <button type="button" class="secundario" id="btnPorDefecto">Volver a los valores de ejemplo</button>
+          <span class="guardado" id="guardado" hidden>Guardado.</span>
+        </div>
+
+        <p class="nota">
+          Los ajustes se guardan en este navegador y en este equipo. Si entras
+          desde otro ordenador habrá que cargarlos otra vez. Para repartir los
+          mismos valores a todo el mundo, copia el texto de abajo y pásalo a
+          Sistemas para que lo deje puesto en la aplicación.
+        </p>
+
+        <div class="campo">
+          <label for="json">Ajustes en texto (para copiar o pegar)</label>
+          <textarea id="json" rows="4" spellcheck="false"></textarea>
+        </div>
+        <div class="botones">
+          <button type="button" class="secundario" id="btnAplicarJson">Aplicar el texto pegado</button>
+        </div>
+      </div>
+
+    </div>
+  </dialog>
+
+</main>
+
+<footer>
+  <p>
+    Calculadora de embalaje de KIMAK · versión 1.1 · aplicación independiente:
+    no se conecta con SIG, Libra ni MES, y no guarda datos en ningún servidor.
+    Incidencias: escribir al correo de soporte de la aplicación.
+  </p>
+</footer>
+
+<script>
+"use strict";
+
+/* ------------------------------------------------------------------
+   COEFICIENTES
+   Valores tomados del Excel "embalajes_rev_oct_2026.xlsx" (hoja EMBALAJES).
+   Quien los cambie en el código, que lo anote en el CHANGELOG.md: un cambio
+   aquí cambia todos los presupuestos que se hagan después.
+   Se pueden modificar sin tocar el código desde el botón de ajustes.
+   ------------------------------------------------------------------ */
+const AJUSTES_POR_DEFECTO = {
+  // Precio del tablero en €/m² (sin merma), por espesor y material.
+  precios: [
+    {espesor: 16, mdf:  9.07, aglo:  5.95},
+    {espesor: 19, mdf: 10.80, aglo:  7.86},
+    {espesor: 30, mdf: 17.12, aglo: 16.50}
+  ],
+  merma: 20,            // % de merma; se aplica sobre el precio del m²
+  recargoM2: 1.00,      // € por m² que se suman al precio con merma (Excel: "+1")
+  densMDF: 750,         // kg/m³ (estimación, el Excel no calcula pesos)
+  densAglo: 650,        // kg/m³ (estimación)
+  precioHora: 33.81,    // € por hora de mano de obra
+  minFijos: 30,         // minutos fijos por caja
+  horasPorM3: 0.45,     // horas de mano de obra por m³ de caja
+  precioTaco: 0.75,     // € por taco inferior
+  tacosPorTramo: 2,     // tacos por cada tramo de ancho
+  tramoTacos: 800,      // mm de ancho que cubre cada tramo (se redondea hacia arriba)
+  consumibles: 2.00,    // € de consumibles por caja
+  generales: 0,         // % de gastos generales sobre el total (Excel: 0)
+  tipoMedidas: "tablero" // "tablero" = como el Excel; "interior" = se suman 2 espesores
+};
+
+/* Clave para abrir los ajustes. No es una medida de seguridad real: solo evita
+   que alguien cambie los coeficientes sin querer. El control de acceso de
+   verdad lo dará el portal (Authentik) cuando la app esté publicada. */
+const CLAVE_RESPONSABLE = "kimak";
+
+const ALMACEN = "kimak_embalaje_ajustes_v2";
+const copiar = (o) => JSON.parse(JSON.stringify(o));
+let ajustes = copiar(AJUSTES_POR_DEFECTO);
+let ajustesPersonalizados = false;
+
+/* ---------- utilidades ---------- */
+const $ = (id) => document.getElementById(id);
+const eur = (n) => n.toLocaleString("es-ES", {minimumFractionDigits:2, maximumFractionDigits:2}) + " €";
+const num = (n, d=2) => n.toLocaleString("es-ES", {minimumFractionDigits:d, maximumFractionDigits:d});
+const NOMBRE_MATERIAL = {mdf: "MDF", aglo: "Aglomerado"};
+const CAMPOS_NUM = ["merma","recargoM2","densMDF","densAglo","precioHora","minFijos",
+  "horasPorM3","precioTaco","tacosPorTramo","tramoTacos","consumibles","generales"];
+
+/* Devuelve unos ajustes completos y válidos a partir de datos sueltos
+   (localStorage o texto pegado); lo que falte o sea inválido toma el valor por defecto. */
+function normalizarAjustes(datos){
+  const r = copiar(AJUSTES_POR_DEFECTO);
+  if(!datos || typeof datos !== "object") return r;
+  for(const k of CAMPOS_NUM){
+    const v = Number(datos[k]);
+    if(datos[k] !== null && datos[k] !== undefined && datos[k] !== "" && Number.isFinite(v) && v >= 0) r[k] = v;
+  }
+  if(datos.tipoMedidas === "tablero" || datos.tipoMedidas === "interior") r.tipoMedidas = datos.tipoMedidas;
+  if(Array.isArray(datos.precios) && datos.precios.length){
+    const lista = datos.precios.map(p => ({
+      espesor: Number(p && p.espesor), mdf: Number(p && p.mdf), aglo: Number(p && p.aglo)
+    })).filter(p => p.espesor > 0 && p.mdf >= 0 && p.aglo >= 0);
+    if(lista.length) r.precios = lista;
+  }
+  return r;
+}
+
+function leerAjustesGuardados(){
+  try{
+    const txt = localStorage.getItem(ALMACEN);
+    if(!txt) return;
+    ajustes = normalizarAjustes(JSON.parse(txt));
+    ajustesPersonalizados = true;
+  }catch(e){
+    /* Navegador sin almacenamiento disponible o datos corruptos: se siguen
+       usando los valores por defecto. La app tiene que funcionar igual. */
+  }
+}
+
+function guardarAjustes(){
+  try{
+    localStorage.setItem(ALMACEN, JSON.stringify(ajustes));
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
+/* ---------- el cálculo ----------
+   Mismo método que la hoja EMBALAJES del Excel:
+   - 3 pares de piezas: ancho x alto, fondo x alto y fondo x ancho (2 de cada).
+   - Precio del m² = precio del tablero x (1 + merma) + recargo.
+   - Mano de obra: parte fija + horas por m³ de caja.
+   - Tacos: precio x tacos x redondeo hacia arriba (ancho / tramo).
+   - Consumibles y gastos generales.                                         */
+function calcular(entrada){
+  const {ancho, fondo, alto, cantidad, material, espesor} = entrada;
+  const fila = ajustes.precios.find(p => p.espesor === espesor) || ajustes.precios[0];
+  const precioBase = fila[material];
+  const precioM2 = precioBase * (1 + ajustes.merma/100) + ajustes.recargoM2;
+
+  // Si las medidas son interiores, la caja crece dos espesores por medida.
+  const suma = ajustes.tipoMedidas === "interior" ? 2*fila.espesor : 0;
+  const A = ancho + suma, F = fondo + suma, H = alto + suma;
+
+  const piezas = [
+    {nombre: "Laterales largos (ancho x alto)", m2: 2 * A * H / 1e6},
+    {nombre: "Laterales cortos (fondo x alto)", m2: 2 * F * H / 1e6},
+    {nombre: "Tapa y base (fondo x ancho)",    m2: 2 * F * A / 1e6}
+  ];
+  piezas.forEach(p => { p.coste = p.m2 * precioM2; });
+  const m2 = piezas.reduce((t, p) => t + p.m2, 0);
+  const costeMaterial = piezas.reduce((t, p) => t + p.coste, 0);
+
+  const volumen = A * F * H / 1e9;
+  const dens = material === "mdf" ? ajustes.densMDF : ajustes.densAglo;
+  const peso = m2 * (fila.espesor/1000) * dens;   // kg de tablero (sin merma)
+
+  const costeFijo = (ajustes.minFijos/60) * ajustes.precioHora;
+  const costeVariable = volumen * ajustes.horasPorM3 * ajustes.precioHora;
+  const nTacos = ajustes.tacosPorTramo * Math.ceil(A / ajustes.tramoTacos);
+  const costeTacos = ajustes.precioTaco * nTacos;
+  const costeConsumibles = ajustes.consumibles;
+  const subtotal = costeMaterial + costeFijo + costeVariable + costeTacos + costeConsumibles;
+  const costeGenerales = subtotal * ajustes.generales/100;
+  const totalCaja = subtotal + costeGenerales;
+
+  return {
+    A, F, H, espesor: fila.espesor, material, precioBase, precioM2, piezas, m2, volumen, peso,
+    costeMaterial, costeFijo, costeVariable, nTacos, costeTacos, costeConsumibles,
+    costeGenerales, totalCaja, cantidad, total: totalCaja * cantidad,
+    m2Total: m2 * cantidad, pesoTotal: peso * cantidad, volumenTotal: volumen * cantidad
+  };
+}
+
+/* ---------- pantalla ---------- */
+function pintar(r){
+  const ref = $("referencia").value.trim();
+  const filas = [];
+  const fila = (etq, val, n=true) =>
+    `<tr><td>${etq}</td><td class="${n?'n':''}">${val}</td></tr>`;
+  const mat = `${NOMBRE_MATERIAL[r.material]} ${num(r.espesor,0)} mm`;
+
+  if(ref) filas.push(fila("Referencia", ref, false));
+  filas.push(fila("Tablero", mat, false));
+  filas.push(fila("Medidas de la caja", `${num(r.A,0)} x ${num(r.F,0)} x ${num(r.H,0)} mm`));
+  filas.push(fila("Volumen (m³)", num(r.volumen,3) + " m³"));
+  filas.push(fila("Tablero total", "<strong>" + num(r.m2) + " m²</strong>"));
+  filas.push(fila("Peso estimado del tablero", num(r.peso,1) + " kg"));
+  filas.push(fila(`Precio del m² (${num(r.precioBase)} +${num(ajustes.merma,0)} % merma +${num(ajustes.recargoM2)} €)`, eur(r.precioM2)));
+  r.piezas.forEach(p => filas.push(fila(`${p.nombre}: ${num(p.m2)} m²`, eur(p.coste))));
+  filas.push(fila("Material", eur(r.costeMaterial)));
+  filas.push(fila(`Mano de obra fija (${num(ajustes.minFijos,0)} min)`, eur(r.costeFijo)));
+  filas.push(fila(`Mano de obra variable (${num(ajustes.horasPorM3,2)} h/m³)`, eur(r.costeVariable)));
+  filas.push(fila(`Tacos inferiores (${num(r.nTacos,0)} ud)`, eur(r.costeTacos)));
+  filas.push(fila("Consumibles", eur(r.costeConsumibles)));
+  if(ajustes.generales > 0) filas.push(fila(`Gastos generales (${num(ajustes.generales,1)} %)`, eur(r.costeGenerales)));
+  filas.push(fila("<strong>Coste por caja</strong>", "<strong>" + eur(r.totalCaja) + "</strong>"));
+
+  if(r.cantidad > 1){
+    filas.push(fila("Número de bultos", num(r.cantidad,0)));
+    filas.push(fila("Tablero total", num(r.m2Total) + " m²"));
+    filas.push(fila("Peso total estimado", num(r.pesoTotal,1) + " kg"));
+    filas.push(fila("Volumen total", num(r.volumenTotal,3) + " m³"));
+  }
+  filas.push(`<tr class="total"><td>Total</td><td class="n">${eur(r.total)}</td></tr>`);
+
+  $("desglose").innerHTML = filas.join("");
+  $("totalGrande").textContent = eur(r.total);
+}
+
+function alCalcular(){
+  const ancho = parseFloat($("ancho").value);
+  const fondo = parseFloat($("fondo").value);
+  const alto  = parseFloat($("alto").value);
+  const cant  = parseInt($("cantidad").value, 10);
+  const err = $("error");
+
+  if(![ancho, fondo, alto].every(v => Number.isFinite(v) && v > 0) ||
+     !Number.isFinite(cant) || cant < 1){
+    err.textContent = "Faltan datos o hay un valor que no es válido. Las tres medidas y el número de bultos tienen que ser mayores que cero.";
+    err.hidden = false;
+    $("desglose").innerHTML = "";
+    $("totalGrande").textContent = "-";
+    return;
+  }
+  err.hidden = true;
+  pintar(calcular({
+    ancho, fondo, alto, cantidad: cant,
+    material: $("material").value,
+    espesor: parseFloat($("espesorSel").value)
+  }));
+}
+
+/* ---------- desplegables y textos que dependen de los ajustes ---------- */
+function rellenarDesplegables(){
+  const mat = $("material").value || "aglo";
+  const esp = $("espesorSel").value;
+  $("material").innerHTML = Object.keys(NOMBRE_MATERIAL)
+    .map(k => `<option value="${k}">${NOMBRE_MATERIAL[k]}</option>`).join("");
+  $("material").value = mat;
+  $("espesorSel").innerHTML = ajustes.precios
+    .map(p => `<option value="${p.espesor}">${p.espesor}</option>`).join("");
+  const existe = ajustes.precios.some(p => String(p.espesor) === esp);
+  $("espesorSel").value = existe ? esp : (ajustes.precios.find(p => p.espesor === 19) || ajustes.precios[0]).espesor;
+  $("notaMedidas").innerHTML = ajustes.tipoMedidas === "interior"
+    ? "Medidas <strong>interiores</strong> de la caja, en milímetros. Se suman dos espesores de tablero a cada medida."
+    : "Medidas de la caja en milímetros, tal como se usan en el Excel de embalajes (sin sumar espesores).";
+}
+
+/* ---------- ajustes ---------- */
+function volcarAjustesAlFormulario(){
+  CAMPOS_NUM.forEach(k => { $(k).value = ajustes[k]; });
+  $("tipoMedidas").value = ajustes.tipoMedidas;
+  $("tablaPrecios").innerHTML = ajustes.precios.map((p, i) =>
+    `<tr><td><input type="number" min="1" step="1" data-i="${i}" data-c="espesor" value="${p.espesor}"></td>` +
+    `<td><input type="number" min="0" step="0.01" data-i="${i}" data-c="mdf" value="${p.mdf}"></td>` +
+    `<td><input type="number" min="0" step="0.01" data-i="${i}" data-c="aglo" value="${p.aglo}"></td></tr>`).join("");
+  $("json").value = JSON.stringify(ajustes);
+  rellenarDesplegables();
+}
+
+function recogerAjustesDelFormulario(){
+  const nuevos = copiar(AJUSTES_POR_DEFECTO);
+  for(const k of CAMPOS_NUM){
+    const v = parseFloat($(k).value);
+    if(!Number.isFinite(v) || v < 0) return null;
+    nuevos[k] = v;
+  }
+  if(nuevos.tramoTacos <= 0) return null;
+  nuevos.tipoMedidas = $("tipoMedidas").value;
+  const filas = {};
+  document.querySelectorAll("#tablaPrecios input").forEach(inp => {
+    (filas[inp.dataset.i] = filas[inp.dataset.i] || {})[inp.dataset.c] = parseFloat(inp.value);
+  });
+  nuevos.precios = Object.keys(filas).map(i => filas[i]);
+  const ok = nuevos.precios.every(p => p.espesor > 0 && p.mdf >= 0 && p.aglo >= 0);
+  const repetidos = new Set(nuevos.precios.map(p => p.espesor)).size !== nuevos.precios.length;
+  return ok && !repetidos ? nuevos : null;
+}
+
+function actualizarAvisoCoeficientes(){
+  $("avisoCoeficientes").hidden = ajustesPersonalizados;
+}
+
+/* ---------- arranque ---------- */
+leerAjustesGuardados();
+actualizarAvisoCoeficientes();
+volcarAjustesAlFormulario();
+$("material").value = "aglo";
+$("espesorSel").value = "19";
+$("sello").textContent = new Date().toLocaleDateString("es-ES",
+  {day:"2-digit", month:"2-digit", year:"numeric"});
+
+$("btnCalcular").addEventListener("click", alCalcular);
+$("btnImprimir").addEventListener("click", () => window.print());
+$("btnAjustes").addEventListener("click", () => $("panelAjustes").showModal());
+$("btnCerrarAjustes").addEventListener("click", () => $("panelAjustes").close());
+$("panelAjustes").addEventListener("close", () => $("btnAjustes").focus());
+
+["ancho","fondo","alto","cantidad"].forEach(id => {
+  $(id).addEventListener("keydown", (ev) => { if(ev.key === "Enter") alCalcular(); });
+});
+["material","espesorSel"].forEach(id => $(id).addEventListener("change", alCalcular));
+
+$("btnEntrar").addEventListener("click", () => {
+  if($("clave").value === CLAVE_RESPONSABLE){
+    $("bloqueo").hidden = true;
+    $("formAjustes").hidden = false;
+    $("errorClave").hidden = true;
+  }else{
+    $("errorClave").hidden = false;
+  }
+});
+$("clave").addEventListener("keydown", (ev) => { if(ev.key === "Enter") $("btnEntrar").click(); });
+
+$("btnGuardar").addEventListener("click", () => {
+  const nuevos = recogerAjustesDelFormulario();
+  if(!nuevos){
+    alert("Hay un valor que no es válido. Revisa los ajustes: todos tienen que ser números positivos y los espesores no pueden repetirse.");
+    return;
+  }
+  ajustes = nuevos;
+  ajustesPersonalizados = true;
+  const ok = guardarAjustes();
+  volcarAjustesAlFormulario();
+  actualizarAvisoCoeficientes();
+  alCalcular();
+  const marca = $("guardado");
+  marca.textContent = ok ? "Guardado." : "Aplicado, pero este navegador no permite guardarlo.";
+  marca.hidden = false;
+  setTimeout(() => { marca.hidden = true; }, 4000);
+});
+
+$("btnPorDefecto").addEventListener("click", () => {
+  ajustes = copiar(AJUSTES_POR_DEFECTO);
+  ajustesPersonalizados = false;
+  try{ localStorage.removeItem(ALMACEN); }catch(e){}
+  volcarAjustesAlFormulario();
+  actualizarAvisoCoeficientes();
+  alCalcular();
+});
+
+$("btnAplicarJson").addEventListener("click", () => {
+  try{
+    ajustes = normalizarAjustes(JSON.parse($("json").value));
+    ajustesPersonalizados = true;
+    guardarAjustes();
+    volcarAjustesAlFormulario();
+    actualizarAvisoCoeficientes();
+    alCalcular();
+    alert("Ajustes aplicados.");
+  }catch(e){
+    alert("Ese texto no tiene el formato correcto. Copia el que genera la propia aplicación.");
+  }
+});
+
+alCalcular();
+</script>
+</body>
+</html>
