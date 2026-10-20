@@ -526,9 +526,9 @@ function calcular(entrada){
   const A = ancho + suma, F = fondo + suma, H = alto + suma;
 
   const piezas = [
-    {nombre: "Laterales largos (ancho x alto)", m2: 2 * A * H / 1e6},
-    {nombre: "Laterales cortos (fondo x alto)", m2: 2 * F * H / 1e6},
-    {nombre: "Tapa y base (fondo x ancho)",    m2: 2 * F * A / 1e6}
+    {nombre: "Laterales largos", dim: "ancho x alto", m2: 2 * A * H / 1e6},
+    {nombre: "Laterales cortos", dim: "fondo x alto", m2: 2 * F * H / 1e6},
+    {nombre: "Tapa y base", dim: "fondo x ancho", m2: 2 * F * A / 1e6}
   ];
   piezas.forEach(p => { p.coste = p.m2 * precioM2; });
   const m2 = piezas.reduce((t, p) => t + p.m2, 0);
@@ -561,38 +561,42 @@ function pintar(r){
   const ref = $("referencia").value.trim();
   const gen = [], det = [];
   const mat = `${NOMBRE_MATERIAL[r.material]} ${num(r.espesor,0)} mm`;
+  /* Cada fila: concepto, detalle, texto que se ve, valor numérico (o null) y unidad.
+     El texto va a pantalla, PDF e impresión; el valor y la unidad, al CSV. */
+  const fila = (lista, e, d, t, v, u) => lista.push({e, d, t, v, u});
 
-  if(ref) gen.push(["Referencia", ref]);
-  gen.push(["Tablero", mat]);
-  gen.push(["Medidas de la caja", `${num(r.A,0)} x ${num(r.F,0)} x ${num(r.H,0)} mm`]);
-  gen.push(["Volumen (m³)", num(r.volumen,3) + " m³"]);
-  gen.push(["Tablero total", num(r.m2) + " m²"]);
-  gen.push(["Peso estimado del tablero", num(r.peso,1) + " kg"]);
+  if(ref) fila(gen, "Referencia", "", ref, null, "");
+  fila(gen, "Tablero", "", mat, null, "");
+  fila(gen, "Medidas de la caja", "", `${num(r.A,0)} x ${num(r.F,0)} x ${num(r.H,0)} mm`, null, "");
+  fila(gen, "Volumen", "", num(r.volumen,3) + " m³", r.volumen, "m³");
+  fila(gen, "Tablero total", "", num(r.m2) + " m²", r.m2, "m²");
+  fila(gen, "Peso estimado del tablero", "", num(r.peso,1) + " kg", r.peso, "kg");
 
-  det.push([`Precio del m² (${num(r.precioBase)} +${num(ajustes.merma,0)} % merma +${num(ajustes.recargoM2)} €)`, eur(r.precioM2)]);
-  r.piezas.forEach(p => det.push([`${p.nombre}: ${num(p.m2)} m²`, eur(p.coste)]));
-  det.push(["Material", eur(r.costeMaterial)]);
-  det.push([`Mano de obra fija (${num(ajustes.minFijos,0)} min)`, eur(r.costeFijo)]);
-  det.push([`Mano de obra variable (${num(ajustes.horasPorM3,2)} h/m³)`, eur(r.costeVariable)]);
-  det.push([`Tacos inferiores para carretilla (${num(r.nTacos,0)} ud)`, eur(r.costeTacos)]);
-  det.push(["Consumibles", eur(r.costeConsumibles)]);
-  if(ajustes.generales > 0) det.push([`Gastos generales (${num(ajustes.generales,1)} %)`, eur(r.costeGenerales)]);
-  det.push(["Coste por caja", eur(r.totalCaja)]);
+  fila(det, "Precio del m²", `${num(r.precioBase)} +${num(ajustes.merma,0)} % merma +${num(ajustes.recargoM2)} €`, eur(r.precioM2), r.precioM2, "€/m²");
+  r.piezas.forEach(p => fila(det, p.nombre, `${p.dim}, ${num(p.m2)} m²`, eur(p.coste), p.coste, "€"));
+  fila(det, "Material", "", eur(r.costeMaterial), r.costeMaterial, "€");
+  fila(det, "Mano de obra fija", `${num(ajustes.minFijos,0)} min`, eur(r.costeFijo), r.costeFijo, "€");
+  fila(det, "Mano de obra variable", `${num(ajustes.horasPorM3,2)} h/m³`, eur(r.costeVariable), r.costeVariable, "€");
+  fila(det, "Tacos inferiores para carretilla", `${num(r.nTacos,0)} ud`, eur(r.costeTacos), r.costeTacos, "€");
+  fila(det, "Consumibles", "", eur(r.costeConsumibles), r.costeConsumibles, "€");
+  if(ajustes.generales > 0) fila(det, "Gastos generales", `${num(ajustes.generales,1)} %`, eur(r.costeGenerales), r.costeGenerales, "€");
+  fila(det, "Coste por caja", "", eur(r.totalCaja), r.totalCaja, "€");
   if(r.cantidad > 1){
-    det.push(["Número de bultos", num(r.cantidad,0)]);
-    det.push(["Tablero total (todos los bultos)", num(r.m2Total) + " m²"]);
-    det.push(["Peso total estimado", num(r.pesoTotal,1) + " kg"]);
-    det.push(["Volumen total", num(r.volumenTotal,3) + " m³"]);
+    fila(det, "Número de bultos", "", num(r.cantidad,0), r.cantidad, "ud");
+    fila(det, "Tablero total (todos los bultos)", "", num(r.m2Total) + " m²", r.m2Total, "m²");
+    fila(det, "Peso total estimado", "", num(r.pesoTotal,1) + " kg", r.pesoTotal, "kg");
+    fila(det, "Volumen total", "", num(r.volumenTotal,3) + " m³", r.volumenTotal, "m³");
   }
 
-  const html = (f, negrita=[]) => f.map(([e, v]) =>
-    negrita.includes(e) ? `<tr><td><strong>${e}</strong></td><td class="n"><strong>${v}</strong></td></tr>`
-                        : `<tr><td>${e}</td><td class="n">${v}</td></tr>`).join("");
+  const etiqueta = (f) => f.d ? `${f.e} (${f.d})` : f.e;
+  const html = (lista, negrita=[]) => lista.map(f =>
+    negrita.includes(f.e) ? `<tr><td><strong>${etiqueta(f)}</strong></td><td class="n"><strong>${f.t}</strong></td></tr>`
+                          : `<tr><td>${etiqueta(f)}</td><td class="n">${f.t}</td></tr>`).join("");
   $("generales").innerHTML = html(gen);
   $("desglose").innerHTML = html(det, ["Coste por caja", "Material"]) +
     `<tr class="total"><td>Total</td><td class="n">${eur(r.total)}</td></tr>`;
   $("totalGrande").textContent = eur(r.total);
-  ultimoResultado = {generales: gen, desglose: det, total: eur(r.total)};
+  ultimoResultado = {generales: gen, desglose: det, total: eur(r.total), totalNum: r.total, etiqueta};
 }
 
 function alCalcular(){
@@ -625,46 +629,89 @@ function alCalcular(){
    Genera un PDF sencillo (una página A4, Helvetica) sin librerías y sin red.  */
 function textoPlano(h){ return String(h).replace(/<[^>]*>/g, ""); }
 
-function crearPdf(titulo, subtitulo, res){
+/* Logo de KIMAK en negro, 8 bits de gris comprimido (zlib) y en base64.
+   Se pega tal cual dentro del PDF; así no hace falta cargar ninguna imagen. */
+const LOGO_PDF = {w: 640, h: 165, datos: "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"};
+
+/* Anchos de Helvetica (por mil) para alinear a la derecha los importes. */
+const ANCHOS_HELV = [278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,
+  556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,
+  667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,
+  278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,
+  334,260,334,584];
+
+function crearPdf(res, ref, fecha){
   // Los caracteres se mandan como un byte (WinAnsi): el euro es 0x80.
   const aByte = (t) => textoPlano(t).replace(/€/g, "\x80").replace(/[^\x00-\xff]/g, "?")
     .replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
-  const ancho = (t, tam) => {
+  const ancho = (t, tam, negrita) => {
     let w = 0;
-    for(const c of textoPlano(t)) w += /[0-9]/.test(c) ? .556 : /[ .,:;]/.test(c) ? .278 : /[A-Z]/.test(c) ? .68 : .52;
-    return w * tam;
+    for(const ch of textoPlano(t).replace(/€/g, "\x80")){
+      const k = ch.charCodeAt(0);
+      w += (k >= 32 && k <= 126) ? ANCHOS_HELV[k - 32] : 556;
+    }
+    return w * tam / 1000 * (negrita ? 1.06 : 1);
   };
-  let y = 790, c = "BT /F2 16 Tf 50 " + y + " Td (" + aByte(titulo) + ") Tj ET\n";
-  y -= 18;
-  c += "BT /F1 10 Tf 50 " + y + " Td (" + aByte(subtitulo) + ") Tj ET\n";
-  const bloque = (nombre, filas) => {
-    y -= 30;
-    c += "BT /F2 11 Tf 50 " + y + " Td (" + aByte(nombre.toUpperCase()) + ") Tj ET\n";
-    c += "0.5 w 50 " + (y - 4) + " m 545 " + (y - 4) + " l S\n";
-    y -= 6;
-    filas.forEach(([etq, val]) => {
-      y -= 16;
-      c += "BT /F1 10 Tf 50 " + y + " Td (" + aByte(etq) + ") Tj ET\n";
-      const x = 545 - ancho(val, 10);
-      c += "BT /F1 10 Tf " + x.toFixed(1) + " " + y + " Td (" + aByte(val) + ") Tj ET\n";
+  const M = 40, D = 595 - 40;              // márgenes izquierdo y derecho
+  let c = "";
+  const texto = (t, x, y, tam, negrita, color) =>
+    c += (color || "0.1 0.12 0.14") + " rg BT " + (negrita ? "/F2 " : "/F1 ") + tam + " Tf " +
+         x.toFixed(1) + " " + y.toFixed(1) + " Td (" + aByte(t) + ") Tj ET\n";
+  const derecha = (t, y, tam, negrita, color) => texto(t, D - ancho(t, tam, negrita), y, tam, negrita, color);
+  const rect = (x, y, w, h, color) => c += color + " rg " + x + " " + y + " " + w + " " + h + " re f\n";
+  const linea = (y, color, grosor) => c += color + " RG " + (grosor || .5) + " w " + M + " " + y + " m " + D + " " + y + " l S\n";
+  const ACENTO = "0.078 0.314 0.42", CLARO = "0.91 0.945 0.96", ZEBRA = "0.972 0.977 0.982";
+
+  // Cabecera: logo a la izquierda, título y datos a la derecha.
+  const lw = 140, lh = lw * LOGO_PDF.h / LOGO_PDF.w;
+  c += "q " + lw + " 0 0 " + lh.toFixed(1) + " " + M + " " + (800 - lh).toFixed(1) + " cm /Im1 Do Q\n";
+  derecha("CÁLCULO DE EMBALAJE", 790, 14, true, ACENTO);
+  derecha("Fecha: " + fecha, 774, 9.5, false, "0.35 0.4 0.44");
+  if(ref) derecha("Referencia: " + ref, 760, 9.5, false, "0.35 0.4 0.44");
+  linea(738, ACENTO, 1.5);
+
+  // Total destacado.
+  rect(M, 678, D - M, 46, ACENTO);
+  texto("Coste total del embalaje", M + 16, 696, 12, false, "1 1 1");
+  texto(res.total, D - 16 - ancho(res.total, 20, true), 694, 20, true, "1 1 1");
+  let y = 678;
+
+  const bloque = (nombre, filas, negrita) => {
+    y -= 34;
+    rect(M, y - 5, D - M, 20, CLARO);
+    texto(nombre.toUpperCase(), M + 8, y + 1, 10, true, ACENTO);
+    y -= 5;
+    filas.forEach((f, i) => {
+      const fuerte = negrita.includes(f.e);
+      y -= 20;
+      if(i % 2 === 1) rect(M, y - 6, D - M, 20, ZEBRA);
+      texto(res.etiqueta(f), M + 8, y, 10, fuerte);
+      texto(f.t, D - 8 - ancho(f.t, 10, fuerte), y, 10, fuerte);
     });
   };
-  bloque("Datos generales", res.generales);
-  bloque("Desglose de costes", res.desglose);
-  y -= 26;
-  c += "1 w 50 " + (y + 16) + " m 545 " + (y + 16) + " l S\n";
-  c += "BT /F2 13 Tf 50 " + y + " Td (TOTAL) Tj ET\n";
-  c += "BT /F2 13 Tf " + (545 - ancho(res.total, 13)).toFixed(1) + " " + y + " Td (" + aByte(res.total) + ") Tj ET\n";
-  y -= 30;
-  c += "BT /F1 8 Tf 50 " + y + " Td (" + aByte("Calculo orientativo para presupuesto. Peso estimado a partir de la densidad del tablero.") + ") Tj ET\n";
+  bloque("Datos generales", res.generales, []);
+  bloque("Desglose de costes", res.desglose, ["Coste por caja", "Material"]);
 
+  y -= 28;
+  linea(y + 14, ACENTO, 1);
+  texto("TOTAL", M + 8, y - 4, 13, true, ACENTO);
+  texto(res.total, D - 8 - ancho(res.total, 13, true), y - 4, 13, true, ACENTO);
+
+  // Pie.
+  linea(52, "0.8 0.83 0.86", .5);
+  texto("Cálculo orientativo para presupuesto. El peso es una estimación a partir de la densidad del tablero.", M, 38, 8, false, "0.35 0.4 0.44");
+  texto("KIMAK · Calculadora de embalaje v1.1", M, 27, 8, false, "0.35 0.4 0.44");
+
+  const logo = atob(LOGO_PDF.datos);
   const objs = [
     "<< /Type /Catalog /Pages 2 0 R >>",
     "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> /XObject << /Im1 7 0 R >> >> >>",
     "<< /Length " + c.length + " >>\nstream\n" + c + "endstream",
     "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
-    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>"
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>",
+    "<< /Type /XObject /Subtype /Image /Width " + LOGO_PDF.w + " /Height " + LOGO_PDF.h +
+      " /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode /Length " + logo.length + " >>\nstream\n" + logo + "\nendstream"
   ];
   let out = "%PDF-1.4\n";
   const pos = [];
@@ -695,13 +742,14 @@ const fechaHoy = () => new Date().toLocaleDateString("es-ES", {day:"2-digit", mo
 function guardarPdf(){
   alCalcular();
   if(!ultimoResultado) return;
-  descargar(crearPdf("Calculadora de embalaje - KIMAK", "Fecha: " + fechaHoy(), ultimoResultado), "pdf");
+  descargar(crearPdf(ultimoResultado, $("referencia").value.trim(), fechaHoy()), "pdf");
 }
 
 /* ---------- CSV ----------
-   Separador ";" y codificación UTF-8 con marca BOM: así Excel en español lo abre
-   directamente con las columnas y los acentos bien. Dos bloques: datos
-   generales y desglose de costes.                                            */
+   Separador ";" y UTF-8 con marca BOM: Excel en español lo abre directamente
+   con columnas y acentos bien. Tres columnas por bloque (concepto, valor y
+   unidad) con los importes como números, para poder sumarlos o filtrarlos.
+   Dos bloques: datos generales y desglose de costes.                         */
 function guardarCsv(){
   alCalcular();
   if(!ultimoResultado) return;
@@ -709,10 +757,24 @@ function guardarCsv(){
     t = textoPlano(t);
     return /[;"\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
   };
-  const lineas = [["Calculadora de embalaje KIMAK"], ["Fecha", fechaHoy()], [],
-    ["DATOS GENERALES"], ["Concepto", "Valor"], ...ultimoResultado.generales, [],
-    ["DESGLOSE DE COSTES"], ["Concepto", "Valor"], ...ultimoResultado.desglose,
-    ["Total", ultimoResultado.total]];
+  const dec = (n, u) => { const k = u === "m³" ? 1000 : 100; return String(Math.round(n * k) / k).replace(".", ","); };
+  const filaCsv = (f) => [f.d ? `${f.e} (${f.d})` : f.e, f.v === null ? f.t : dec(f.v, f.u), f.u];
+  const ref = $("referencia").value.trim();
+  const lineas = [
+    ["CALCULADORA DE EMBALAJE - KIMAK"],
+    ["Fecha", fechaHoy()],
+    ...(ref ? [["Referencia", ref]] : []),
+    [],
+    ["DATOS GENERALES"],
+    ["Concepto", "Valor", "Unidad"],
+    ...ultimoResultado.generales.filter(f => f.e !== "Referencia").map(filaCsv),
+    [],
+    ["DESGLOSE DE COSTES"],
+    ["Concepto", "Valor", "Unidad"],
+    ...ultimoResultado.desglose.map(filaCsv),
+    [],
+    ["TOTAL", dec(ultimoResultado.totalNum, "€"), "€"]
+  ];
   const texto = "﻿" + lineas.map(l => l.map(cel).join(";")).join("\r\n") + "\r\n";
   descargar(new Blob([texto], {type: "text/csv;charset=utf-8"}), "csv");
 }
